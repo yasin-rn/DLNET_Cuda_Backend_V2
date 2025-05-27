@@ -4,3 +4,12 @@
 *.ptx
 *.cubin
 *.fatbin
+/.vs/DLNET_Cuda_Backend_V2/FileContentIndex
+/.vs/DLNET_Cuda_Backend_V2/v17/ipch/AutoPCH
+/.vs/DLNET_Cuda_Backend_V2/v17
+/DLNET_Cu.680A6DE4/x64/Debug
+/x64/Debug
+/DLNET_Cuda_Backend_V2.sln
+/DLNET_Cuda_Backend_V2.vcxproj
+/DLNET_Cuda_Backend_V2.vcxproj.filters
+/DLNET_Cuda_Backend_V2.vcxproj.user
