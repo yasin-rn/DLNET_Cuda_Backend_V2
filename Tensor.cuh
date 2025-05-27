@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <cuda_runtime.h>
 #include <vector>
 #include "Tensor_Kernels.cuh"
@@ -7,6 +7,13 @@
 #include <cuda_bf16.h>
 #include <cuda_fp8.h>
 #include <cuda_fp4.h>
+#include <chrono>
+#include <string>
+#include <sstream>     // std::ostringstream (string oluşturmak için)
+#include <iomanip>     // std::fixed, std::setprecision (float formatlama için)
+#include <typeinfo>    // typeid (veri tipini yazdırmak için)
+
+#include <cudnn.h>
 
 template <typename T>
 class Tensor
@@ -57,9 +64,11 @@ public:
 	T* getData() const { return Data; }
 	T** getBatchPtrs() const { return BatchPtrs; }
 
+
 	void Fill(T value);
 	void FillRandomUniform();
-	void FillRandomUniform(int seed);
+	void FillRandomUniform(unsigned long long seed);
+
 
 };
 

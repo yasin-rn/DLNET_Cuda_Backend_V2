@@ -1,4 +1,5 @@
-#include "Tensor.cuh"
+﻿#include "Tensor.cuh"
+#include <cudnn.h>
 
 
 template <typename T>
@@ -147,7 +148,7 @@ Tensor<T>::Tensor(int h, int w, T* hostData) :N(1), C(1), H(h), W(w)
 }
 
 template <typename T>
-Tensor<T>::Tensor(int w) :N(1), C(1), H(1), W(w)
+Tensor<T>::Tensor(int h) :N(1), C(1), H(h), W(1)
 {
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -170,7 +171,7 @@ Tensor<T>::Tensor(int w) :N(1), C(1), H(1), W(w)
 
 }
 template <typename T>
-Tensor<T>::Tensor(int w, T* hostData) :N(1), C(1), H(1), W(w)
+Tensor<T>::Tensor(int h, T* hostData) :N(1), C(1), H(h), W(1)
 {
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -317,11 +318,38 @@ void Tensor<T>::Fill(T value)
 template <typename T>
 void Tensor<T>::FillRandomUniform()
 {
+	unsigned long long seed = std::chrono::system_clock::now().time_since_epoch().count();
+	FillRandomUniform(seed);
 
 }
 
 template <typename T>
-void Tensor<T>::FillRandomUniform(int seed) {}
+void Tensor<T>::FillRandomUniform(unsigned long long seed)
+{
+	if (TotalSize == 0) return;
+
+	cudaDeviceProp deviceProp;
+	cudaGetDeviceProperties(&deviceProp, Device);
+
+	int minGridSize = 0;
+	int blockSize = 0;
+
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, FillRandomUniformKernel<T>, 0, 0);
+
+	size_t numElements = TotalSize / sizeof(T);
+	if (numElements == 0) return;
+
+	int blocksPerGrid = (numElements + blockSize - 1) / blockSize;
+	if (blocksPerGrid == 0 && numElements > 0) blocksPerGrid = 1;
+
+	FillRandomUniformKernel<T> << <blocksPerGrid, blockSize >> > (Data, numElements, seed);
+
+	cudaGetLastError();
+
+	cudaDeviceSynchronize();
+}
+
+
 
 template class Tensor<float>;
 template class Tensor<double>;
