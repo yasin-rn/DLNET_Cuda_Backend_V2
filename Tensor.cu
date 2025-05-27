@@ -315,6 +315,7 @@ void Tensor<T>::Fill(T value)
 	cudaDeviceSynchronize();
 }
 
+
 template <typename T>
 void Tensor<T>::FillRandomUniform()
 {
@@ -349,6 +350,128 @@ void Tensor<T>::FillRandomUniform(unsigned long long seed)
 	cudaDeviceSynchronize();
 }
 
+
+std::string getFriendlyTypeName(const std::type_info& ti) {
+	if (ti == typeid(float)) return "float32";
+	if (ti == typeid(double)) return "float64";
+	if (ti == typeid(int)) return "int32";
+	if (ti == typeid(__half)) return "float16";
+	if (ti == typeid(__nv_fp8_e5m2)) return "fp8_e5m2";
+	if (ti == typeid(__nv_fp8_e4m3)) return "fp8_e4m3";
+
+	return ti.name();
+}
+template <typename T>
+std::string Tensor<T>::ToString() const {
+	std::ostringstream oss;
+
+
+	if (Data == nullptr || TotalSize == 0) {
+		return "tensor([], dtype=" + getFriendlyTypeName(typeid(T)) + ", device=cuda:" + std::to_string(Device) + ")";
+	}
+
+	size_t numElements = TotalSize / sizeof(T);
+	std::vector<T> host_data(numElements);
+	cudaError_t err = cudaMemcpy(host_data.data(), Data, TotalSize, cudaMemcpyDeviceToHost);
+
+	if (err != cudaSuccess) {
+		oss << "Error copying data to host: " << cudaGetErrorString(err);
+		return oss.str();
+	}
+
+	oss << "tensor(";
+	oss << std::fixed << std::setprecision(4);
+
+
+	auto print_val = [&](T val) {
+		if constexpr (std::is_same_v<T, __half>) {
+			oss << __half2float(val);
+		}
+		else if constexpr (std::is_same_v<T, __nv_fp8_e5m2> ||
+			std::is_same_v<T, __nv_fp8_e4m3>) {
+			oss << static_cast<float>(val);
+		}
+		else {
+			oss << std::fixed << std::setprecision(4) << static_cast<float>(val);
+
+		}
+		};
+
+
+	const int PRINT_THRESHOLD_W = 10;
+	const int EDGE_ITEMS_W = 3;
+
+	int N_ = N, C_ = C, H_ = H, W_ = W;
+
+	if (numElements == 0) {
+		oss << "[]";
+	}
+	else {
+
+		if (N_ == 1 && C_ == 1 && H_ == 1 && W_ == 1) {
+			print_val(host_data[0]);
+
+		}
+		else {
+
+			std::string base_indent = "        ";
+
+			oss << "[";
+			for (int n = 0; n < N_; ++n) {
+				if (n > 0) oss << "," << "\n" << base_indent;
+				if (N_ > 1) oss << "[";
+
+				for (int c = 0; c < C_; ++c) {
+					if (c > 0) oss << "," << "\n" << base_indent << (N_ > 1 ? " " : "");
+					if (C_ > 1) oss << "[";
+
+					for (int h = 0; h < H_; ++h) {
+						if (h > 0) oss << "," << "\n" << base_indent << (N_ > 1 ? "  " : "") << (C_ > 1 ? " " : "");
+						oss << "[";
+
+
+						if (W_ > PRINT_THRESHOLD_W) {
+							for (int w = 0; w < EDGE_ITEMS_W; ++w) {
+								size_t idx = static_cast<size_t>(n) * C_ * H_ * W_ +
+									static_cast<size_t>(c) * H_ * W_ +
+									static_cast<size_t>(h) * W_ + w;
+								print_val(host_data[idx]);
+								if (w < EDGE_ITEMS_W - 1) oss << ", ";
+							}
+							oss << ", ..., ";
+							for (int w = W_ - EDGE_ITEMS_W; w < W_; ++w) {
+								size_t idx = static_cast<size_t>(n) * C_ * H_ * W_ +
+									static_cast<size_t>(c) * H_ * W_ +
+									static_cast<size_t>(h) * W_ + w;
+								print_val(host_data[idx]);
+								if (w < W_ - 1) oss << ", ";
+							}
+						}
+						else {
+							for (int w = 0; w < W_; ++w) {
+								size_t idx = static_cast<size_t>(n) * C_ * H_ * W_ +
+									static_cast<size_t>(c) * H_ * W_ +
+									static_cast<size_t>(h) * W_ + w;
+								print_val(host_data[idx]);
+								if (w < W_ - 1) oss << ", ";
+							}
+						}
+						oss << "]";
+					}
+					if (C_ > 1) oss << "]";
+				}
+				if (N_ > 1) oss << "]";
+			}
+			oss << "]";
+		}
+	}
+
+
+	oss << ", dtype=" << getFriendlyTypeName(typeid(T));
+	oss << ", device=cuda:" << Device << ")";
+
+	return oss.str();
+}
 
 
 template class Tensor<float>;

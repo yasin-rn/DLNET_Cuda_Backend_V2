@@ -69,6 +69,8 @@ public:
 	void FillRandomUniform();
 	void FillRandomUniform(unsigned long long seed);
 
+	std::string ToString() const;
+
 
 };
 
