@@ -6,6 +6,9 @@ template <typename T>
 Tensor<T>::Tensor(int n, int c, int h, int w) :N(n), C(c), H(h), W(w)
 {
 
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
+
 	Strides[0] = 1;
 	Strides[1] = W;
 	Strides[2] = H * W;
@@ -33,6 +36,9 @@ Tensor<T>::Tensor(int n, int c, int h, int w) :N(n), C(c), H(h), W(w)
 template <typename T>
 Tensor<T>::Tensor(int n, int c, int h, int w, T* hostData) :N(n), C(c), H(h), W(w)
 {
+
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -63,6 +69,9 @@ template <typename T>
 Tensor<T>::Tensor(int n, int h, int w) :N(n), C(1), H(h), W(w)
 {
 
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
+
 	Strides[0] = 1;
 	Strides[1] = W;
 	Strides[2] = H * W;
@@ -88,6 +97,9 @@ Tensor<T>::Tensor(int n, int h, int w) :N(n), C(1), H(h), W(w)
 template <typename T>
 Tensor<T>::Tensor(int n, int h, int w, T* hostData) :N(n), C(1), H(h), W(w)
 {
+
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -116,6 +128,10 @@ Tensor<T>::Tensor(int n, int h, int w, T* hostData) :N(n), C(1), H(h), W(w)
 template <typename T>
 Tensor<T>::Tensor(int h, int w) :N(1), C(1), H(h), W(w)
 {
+
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
+
 	Strides[0] = 1;
 	Strides[1] = W;
 	Strides[2] = H * W;
@@ -141,6 +157,9 @@ Tensor<T>::Tensor(int h, int w) :N(1), C(1), H(h), W(w)
 template <typename T>
 Tensor<T>::Tensor(int h, int w, T* hostData) :N(1), C(1), H(h), W(w)
 {
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
+
 	Strides[0] = 1;
 	Strides[1] = W;
 	Strides[2] = H * W;
@@ -168,6 +187,9 @@ Tensor<T>::Tensor(int h, int w, T* hostData) :N(1), C(1), H(h), W(w)
 template <typename T>
 Tensor<T>::Tensor(int w) :N(1), C(1), H(1), W(w)
 {
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
+
 	Strides[0] = 1;
 	Strides[1] = W;
 	Strides[2] = H * W;
@@ -194,6 +216,9 @@ Tensor<T>::Tensor(int w) :N(1), C(1), H(1), W(w)
 template <typename T>
 Tensor<T>::Tensor(int w, T* hostData) :N(1), C(1), H(1), W(w)
 {
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
+
 	Strides[0] = 1;
 	Strides[1] = W;
 	Strides[2] = H * W;
@@ -225,6 +250,8 @@ Tensor<T>::Tensor(int n, int c, int h, int w, T* view_data_ptr,
 	: N(n), C(c), H(h), W(w), Data(view_data_ptr), IsOwnData(!is_view_flag), IsChunkPart(is_view_flag), BatchPtrs(nullptr), CudnnDesc(nullptr)
 {
 	cudaGetDevice(&Device);
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
 
 	if (IsOwnData) {
 		TotalSize = sizeof(T) * N * C * H * W;
@@ -282,6 +309,10 @@ template <typename T>
 Tensor<T>::Tensor(const Tensor<T>& other)
 	: N(other.N), C(other.C), H(other.H), W(other.W), IsChunkPart(other.IsChunkPart), IsOwnData(true), TotalSize(other.TotalSize), CudnnDesc(other.CudnnDesc)
 {
+
+	CudaDataType = GetCudaDataType<T>();
+	CudnnDataType = GetCudnnDataType<T>();
+
 	memcpy(Strides, other.Strides, 4 * sizeof(int));
 
 	cudaMalloc(&Data, TotalSize);

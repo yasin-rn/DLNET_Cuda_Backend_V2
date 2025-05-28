@@ -2,16 +2,15 @@
 #include <cuda_runtime.h>
 #include <vector>
 #include "Tensor_Kernels.cuh"
-
 #include <cuda_fp16.h>    
 #include <cuda_bf16.h>
 #include <cuda_fp8.h>
 #include <cuda_fp4.h>
 #include <chrono>
 #include <string>
-#include <sstream>     // std::ostringstream (string oluşturmak için)
-#include <iomanip>     // std::fixed, std::setprecision (float formatlama için)
-#include <typeinfo>    // typeid (veri tipini yazdırmak için)
+#include <sstream>     
+#include <iomanip>     
+#include <typeinfo>    
 
 #include <cudnn.h>
 
@@ -35,6 +34,9 @@ private:
 
 	int Device = 0;
 	cudnnTensorDescriptor_t CudnnDesc;
+
+	cudaDataType_t CudaDataType;
+	cudnnDataType_t CudnnDataType;
 
 public:
 
@@ -82,11 +84,48 @@ public:
 	std::string ToString() const;
 
 	template <typename U>
+	constexpr cudaDataType_t GetCudaDataType();
+
+	template <>
+	constexpr cudaDataType_t GetCudaDataType<float>() {
+		return CUDA_R_32F;
+	}
+
+	template <>
+	constexpr cudaDataType_t GetCudaDataType<double>() {
+		return CUDA_R_64F;
+	}
+
+	template <>
+	constexpr cudaDataType_t GetCudaDataType<__half>() {
+		return CUDA_R_16F;
+	}
+
+	template <>
+	constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e5m2>() {
+		return CUDA_R_8F_E5M2;
+	}
+
+	template <>
+	constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e4m3>() {
+		return CUDA_R_8F_E4M3;
+	}
+
+	template <>
+	constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e8m0>() {
+		return CUDA_R_8F_UE8M0;
+	}
+	template <>
+	constexpr cudaDataType_t GetCudaDataType<__nv_fp4_e2m1>() {
+		return CUDA_R_4F_E2M1;
+	}
+
+	template <typename U>
 	constexpr cudnnDataType_t GetCudnnDataType();
 
 	template <>
 	constexpr cudnnDataType_t GetCudnnDataType<float>() {
-		return CUDNN_DATA_FLOAT();
+		return CUDNN_DATA_FLOAT;
 	}
 
 	template <>
