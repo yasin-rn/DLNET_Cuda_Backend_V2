@@ -34,6 +34,7 @@ private:
 	size_t TotalSize;
 
 	int Device = 0;
+	cudnnTensorDescriptor_t CudnnDesc;
 
 public:
 
@@ -57,20 +58,58 @@ public:
 	Tensor(Tensor<T>&& other) noexcept;
 	Tensor<T>& operator=(Tensor<T>&& other) noexcept;
 
-	int getN() const { return N; }
-	int getC() const { return C; }
-	int getH() const { return H; }
-	int getW() const { return W; }
-	T* getData() const { return Data; }
-	T** getBatchPtrs() const { return BatchPtrs; }
+	int GetN() const { return N; }
+	int GetC() const { return C; }
+	int GetH() const { return H; }
+	int GetW() const { return W; }
+	T* GetData() const { return Data; }
+	T** GetBatchPtrs() const { return BatchPtrs; }
 
+	cudnnTensorDescriptor_t GetDesc();
 
 	void Fill(T value);
 	void FillRandomUniform();
 	void FillRandomUniform(unsigned long long seed);
+	void Reshape(int n, int c, int h, int w);
 
 	std::string ToString() const;
 
+	template <typename T>
+	constexpr cudnnDataType_t GetCudnnDataType();
+
+	template <>
+	constexpr cudnnDataType_t GetCudnnDataType<float>() {
+		return CUDNN_DATA_FLOAT();
+	}
+
+	template <>
+	constexpr cudnnDataType_t GetCudnnDataType<double>() {
+		return CUDNN_DATA_DOUBLE;
+	}
+
+	template <>
+	constexpr cudnnDataType_t GetCudnnDataType<__half>() {
+		return CUDNN_DATA_HALF;
+	}
+
+	template <>
+	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e5m2>() {
+		return CUDNN_DATA_HALF;
+	}
+
+	template <>
+	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e4m3>() {
+		return CUDNN_DATA_HALF;
+	}
+
+	template <>
+	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e8m0>() {
+		return CUDNN_DATA_HALF;
+	}
+	template <>
+	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp4_e2m1>() {
+		return CUDNN_DATA_HALF;
+	}
 
 };
 
