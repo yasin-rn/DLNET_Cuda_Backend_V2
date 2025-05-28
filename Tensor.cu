@@ -218,6 +218,42 @@ Tensor<T>::Tensor(int w, T* hostData) :N(1), C(1), H(1), W(w)
 	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDataType<T>(), N, C, H, W);
 }
 
+template <typename T>
+Tensor<T>::Tensor(int n, int c, int h, int w, T* view_data_ptr,
+	int original_n_stride, int original_c_stride, int original_h_stride, int original_w_stride,
+	bool is_view_flag)
+	: N(n), C(c), H(h), W(w), Data(view_data_ptr), IsOwnData(!is_view_flag), IsChunkPart(is_view_flag), BatchPtrs(nullptr), CudnnDesc(nullptr)
+{
+	cudaGetDevice(&Device);
+
+	if (IsOwnData) {
+		TotalSize = sizeof(T) * N * C * H * W;
+	}
+	else {
+		TotalSize = 0;
+	}
+
+	this->Strides[0] = 1;
+	this->Strides[1] = W;
+	this->Strides[2] = H * W;
+	this->Strides[3] = C * H * W;
+
+	cudnnCreateTensorDescriptor(&CudnnDesc);
+	cudnnSetTensor4dDescriptorEx(CudnnDesc, GetCudnnDataType<T>(), N, C, H, W,
+		original_n_stride, original_c_stride, original_h_stride, original_w_stride);
+
+	if (N > 0) {
+		std::vector<T*> host_batch_ptrs_vec(N);
+		for (int i = 0; i < N; ++i) {
+			host_batch_ptrs_vec[i] = this->Data + ((size_t)i * original_n_stride);
+		}
+		cudaMalloc(&BatchPtrs, (size_t)N * sizeof(T*));
+		cudaMemcpy(BatchPtrs, host_batch_ptrs_vec.data(), (size_t)N * sizeof(T*), cudaMemcpyHostToDevice);
+	}
+	else {
+		BatchPtrs = nullptr;
+	}
+}
 
 template <typename T>
 Tensor<T>::~Tensor()
@@ -391,7 +427,111 @@ void Tensor<T>::FillRandomUniform(unsigned long long seed)
 	cudaDeviceSynchronize();
 }
 
+template <typename T>
+std::vector<Tensor<T>> Tensor<T>::Chunk(int dim, int numOfChunk) {
+	std::vector<Tensor<T>> chunks;
 
+	int original_n_dim = this->N;
+	int original_c_dim = this->C;
+	int original_h_dim = this->H;
+	int original_w_dim = this->W;
+
+	int actual_wStride = 1;
+	int actual_hStride = original_w_dim;
+	int actual_cStride = original_h_dim * original_w_dim;
+	int actual_nStride = original_c_dim * original_h_dim * original_w_dim;
+
+	T* base_data_ptr = this->Data;
+	long long current_element_offset = 0;
+
+	int dim_to_chunk_original_size;
+	long long stride_of_chunked_dim_in_elements;
+
+	switch (dim) {
+	case 0: dim_to_chunk_original_size = original_n_dim; stride_of_chunked_dim_in_elements = actual_nStride; break;
+	case 1: dim_to_chunk_original_size = original_c_dim; stride_of_chunked_dim_in_elements = actual_cStride; break;
+	case 2: dim_to_chunk_original_size = original_h_dim; stride_of_chunked_dim_in_elements = actual_hStride; break;
+	case 3: dim_to_chunk_original_size = original_w_dim; stride_of_chunked_dim_in_elements = actual_wStride; break;
+	default: return chunks;
+	}
+
+
+	if (dim_to_chunk_original_size == 0 && numOfChunk > 0) {
+		for (int i = 0; i < numOfChunk; ++i) {
+			chunks.emplace_back((dim == 0 ? 0 : original_n_dim),
+				(dim == 1 ? 0 : original_c_dim),
+				(dim == 2 ? 0 : original_h_dim),
+				(dim == 3 ? 0 : original_w_dim),
+				base_data_ptr,
+				actual_nStride, actual_cStride, actual_hStride, actual_wStride,
+				true);
+		}
+		return chunks;
+	}
+
+
+
+	if (numOfChunk > dim_to_chunk_original_size) {
+		for (int i = 0; i < dim_to_chunk_original_size; ++i) {
+			int chunk_n = (dim == 0) ? 1 : original_n_dim;
+			int chunk_c = (dim == 1) ? 1 : original_c_dim;
+			int chunk_h = (dim == 2) ? 1 : original_h_dim;
+			int chunk_w = (dim == 3) ? 1 : original_w_dim;
+			T* chunk_data_start_ptr = base_data_ptr + current_element_offset;
+			chunks.emplace_back(chunk_n, chunk_c, chunk_h, chunk_w,
+				chunk_data_start_ptr,
+				actual_nStride, actual_cStride, actual_hStride, actual_wStride,
+				true);
+			current_element_offset += stride_of_chunked_dim_in_elements;
+		}
+
+		T* zero_chunk_data_ptr = base_data_ptr + current_element_offset;
+		for (int i = 0; i < numOfChunk - dim_to_chunk_original_size; ++i) {
+			int chunk_n = (dim == 0) ? 0 : original_n_dim;
+			int chunk_c = (dim == 1) ? 0 : original_c_dim;
+			int chunk_h = (dim == 2) ? 0 : original_h_dim;
+			int chunk_w = (dim == 3) ? 0 : original_w_dim;
+			chunks.emplace_back(chunk_n, chunk_c, chunk_h, chunk_w,
+				zero_chunk_data_ptr,
+				actual_nStride, actual_cStride, actual_hStride, actual_wStride,
+				true);
+		}
+		return chunks;
+	}
+
+
+	int chunk_dim_base_val = dim_to_chunk_original_size / numOfChunk;
+	int remainder_val = dim_to_chunk_original_size % numOfChunk;
+
+	for (int i = 0; i < numOfChunk; ++i) {
+		int current_chunk_dim_actual_val = chunk_dim_base_val + (i < remainder_val ? 1 : 0);
+
+		int chunk_n = original_n_dim;
+		int chunk_c = original_c_dim;
+		int chunk_h = original_h_dim;
+		int chunk_w = original_w_dim;
+
+
+		switch (dim) {
+		case 0: chunk_n = current_chunk_dim_actual_val; break;
+		case 1: chunk_c = current_chunk_dim_actual_val; break;
+		case 2: chunk_h = current_chunk_dim_actual_val; break;
+		case 3: chunk_w = current_chunk_dim_actual_val; break;
+		}
+
+		T* chunk_data_start_ptr = base_data_ptr + current_element_offset;
+
+		chunks.emplace_back(chunk_n, chunk_c, chunk_h, chunk_w,
+			chunk_data_start_ptr,
+			actual_nStride, actual_cStride, actual_hStride, actual_wStride,
+			true);
+
+
+		current_element_offset += (long long)current_chunk_dim_actual_val * stride_of_chunked_dim_in_elements;
+	}
+
+	return chunks;
+}
 template <typename T>
 void Tensor<T>::Reshape(int n, int c, int h, int w)
 {
@@ -411,54 +551,89 @@ std::string Tensor<T>::ToString() const {
 	std::ostringstream oss;
 
 
-	if (Data == nullptr || TotalSize == 0) {
-		return "tensor([], dtype=" + getFriendlyTypeName(typeid(T)) + ", device=cuda:" + std::to_string(Device) + ")";
+	size_t logical_num_elements = static_cast<size_t>(this->N) * this->C * this->H * this->W;
+
+	if (Data == nullptr || logical_num_elements == 0) {
+		oss << "tensor([], dtype=" << getFriendlyTypeName(typeid(T)) << ", device=cuda:" << std::to_string(this->Device) << ")";
+		return oss.str();
 	}
 
-	size_t numElements = TotalSize / sizeof(T);
-	std::vector<T> host_data(numElements);
-	cudaError_t err = cudaMemcpy(host_data.data(), Data, TotalSize, cudaMemcpyDeviceToHost);
+	std::vector<T> host_data_elements(logical_num_elements);
 
-	if (err != cudaSuccess) {
-		oss << "Error copying data to host: " << cudaGetErrorString(err);
-		return oss.str();
+	cudnnDataType_t dataType_desc;
+	int n_from_desc, c_from_desc, h_from_desc, w_from_desc;
+	int nStride_from_desc, cStride_from_desc, hStride_from_desc, wStride_from_desc;
+
+	cudnnGetTensor4dDescriptor(this->CudnnDesc,
+		&dataType_desc,
+		&n_from_desc, &c_from_desc, &h_from_desc, &w_from_desc,
+		&nStride_from_desc, &cStride_from_desc, &hStride_from_desc, &wStride_from_desc);
+
+	for (int n_idx = 0; n_idx < this->N; ++n_idx) {
+		for (int c_idx = 0; c_idx < this->C; ++c_idx) {
+			for (int h_idx = 0; h_idx < this->H; ++h_idx) {
+				for (int w_idx = 0; w_idx < this->W; ++w_idx) {
+					size_t offset_in_original_data =
+						static_cast<size_t>(n_idx) * nStride_from_desc +
+						static_cast<size_t>(c_idx) * cStride_from_desc +
+						static_cast<size_t>(h_idx) * hStride_from_desc +
+						static_cast<size_t>(w_idx) * wStride_from_desc;
+
+					size_t linear_idx_in_chunk_buffer =
+						static_cast<size_t>(n_idx) * this->C * this->H * this->W +
+						static_cast<size_t>(c_idx) * this->H * this->W +
+						static_cast<size_t>(h_idx) * this->W +
+						w_idx;
+
+					cudaError_t err = cudaMemcpy(&host_data_elements[linear_idx_in_chunk_buffer],
+						this->Data + offset_in_original_data,
+						sizeof(T),
+						cudaMemcpyDeviceToHost);
+					if (err != cudaSuccess) {
+						oss.str("");
+						oss << "Error copying element at NCHW(" << n_idx << "," << c_idx << "," << h_idx << "," << w_idx
+							<< ") : " << cudaGetErrorString(err);
+						return oss.str();
+					}
+				}
+			}
+		}
 	}
 
 	oss << "tensor(";
 	oss << std::fixed << std::setprecision(4);
 
-
 	auto print_val = [&](T val) {
 		if constexpr (std::is_same_v<T, __half>) {
 			oss << __half2float(val);
 		}
-		else if constexpr (std::is_same_v<T, __nv_fp8_e5m2> ||
-			std::is_same_v<T, __nv_fp8_e4m3>) {
+		else if constexpr (std::is_same_v<T, __nv_fp8_e5m2> || std::is_same_v<T, __nv_fp8_e4m3>) {
+			oss << static_cast<float>(val);
+		}
+		else if constexpr (std::is_same_v<T, __nv_fp4_e2m1> || std::is_same_v<T, __nv_fp8_e8m0>) { // Varsayımsal FP4 ve diğer FP8 için
 			oss << static_cast<float>(val);
 		}
 		else {
 			oss << std::fixed << std::setprecision(4) << static_cast<float>(val);
-
 		}
 		};
-
 
 	const int PRINT_THRESHOLD_W = 10;
 	const int EDGE_ITEMS_W = 3;
 
-	int N_ = N, C_ = C, H_ = H, W_ = W;
+	int N_ = this->N;
+	int C_ = this->C;
+	int H_ = this->H;
+	int W_ = this->W;
 
-	if (numElements == 0) {
+	if (logical_num_elements == 0) {
 		oss << "[]";
 	}
 	else {
-
 		if (N_ == 1 && C_ == 1 && H_ == 1 && W_ == 1) {
-			print_val(host_data[0]);
-
+			print_val(host_data_elements[0]);
 		}
 		else {
-
 			std::string base_indent = "        ";
 
 			oss << "[";
@@ -474,13 +649,12 @@ std::string Tensor<T>::ToString() const {
 						if (h > 0) oss << "," << "\n" << base_indent << (N_ > 1 ? "  " : "") << (C_ > 1 ? " " : "");
 						oss << "[";
 
-
 						if (W_ > PRINT_THRESHOLD_W) {
 							for (int w = 0; w < EDGE_ITEMS_W; ++w) {
 								size_t idx = static_cast<size_t>(n) * C_ * H_ * W_ +
 									static_cast<size_t>(c) * H_ * W_ +
 									static_cast<size_t>(h) * W_ + w;
-								print_val(host_data[idx]);
+								print_val(host_data_elements[idx]);
 								if (w < EDGE_ITEMS_W - 1) oss << ", ";
 							}
 							oss << ", ..., ";
@@ -488,7 +662,7 @@ std::string Tensor<T>::ToString() const {
 								size_t idx = static_cast<size_t>(n) * C_ * H_ * W_ +
 									static_cast<size_t>(c) * H_ * W_ +
 									static_cast<size_t>(h) * W_ + w;
-								print_val(host_data[idx]);
+								print_val(host_data_elements[idx]);
 								if (w < W_ - 1) oss << ", ";
 							}
 						}
@@ -497,7 +671,7 @@ std::string Tensor<T>::ToString() const {
 								size_t idx = static_cast<size_t>(n) * C_ * H_ * W_ +
 									static_cast<size_t>(c) * H_ * W_ +
 									static_cast<size_t>(h) * W_ + w;
-								print_val(host_data[idx]);
+								print_val(host_data_elements[idx]);
 								if (w < W_ - 1) oss << ", ";
 							}
 						}
@@ -511,13 +685,11 @@ std::string Tensor<T>::ToString() const {
 		}
 	}
 
-
 	oss << ", dtype=" << getFriendlyTypeName(typeid(T));
-	oss << ", device=cuda:" << Device << ")";
+	oss << ", device=cuda:" << this->Device << ")";
 
 	return oss.str();
 }
-
 std::string getFriendlyTypeName(const std::type_info& ti) {
 	if (ti == typeid(float)) return "float32";
 	if (ti == typeid(double)) return "float64";

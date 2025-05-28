@@ -50,6 +50,10 @@ public:
 	Tensor(int w);
 	Tensor(int w, T* hostData);
 
+	Tensor(int n, int c, int h, int w, T* view_data_ptr,
+		int original_n_stride, int original_c_stride, int original_h_stride, int original_w_stride,
+		bool is_view_flag);
+
 	~Tensor();
 
 	Tensor(const Tensor<T>& other);
@@ -70,11 +74,14 @@ public:
 	void Fill(T value);
 	void FillRandomUniform();
 	void FillRandomUniform(unsigned long long seed);
+
+	std::vector<Tensor<T>> Chunk(int dim, int numOfChunk);
 	void Reshape(int n, int c, int h, int w);
+
 
 	std::string ToString() const;
 
-	template <typename T>
+	template <typename U>
 	constexpr cudnnDataType_t GetCudnnDataType();
 
 	template <>
@@ -94,21 +101,21 @@ public:
 
 	template <>
 	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e5m2>() {
-		return CUDNN_DATA_HALF;
+		return CUDNN_DATA_FP8_E5M2;
 	}
 
 	template <>
 	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e4m3>() {
-		return CUDNN_DATA_HALF;
+		return CUDNN_DATA_FP8_E4M3;
 	}
 
 	template <>
 	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e8m0>() {
-		return CUDNN_DATA_HALF;
+		return CUDNN_DATA_FP8_E8M0;
 	}
 	template <>
 	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp4_e2m1>() {
-		return CUDNN_DATA_HALF;
+		return CUDNN_DATA_FP4_E2M1;
 	}
 
 };
