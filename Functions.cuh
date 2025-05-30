@@ -14,7 +14,6 @@ public:
 	static cudnnHandle_t CreateCudnnHandle();
 	static void DestroyCudnnHandle(cudnnHandle_t handle);
 
-
 private:
 
 };

@@ -23,6 +23,7 @@ private:
 	int H;
 	int W;
 	int Strides[4];
+	int DimSize;
 
 	bool IsChunkPart = false;
 	bool IsOwnData = true;
@@ -35,10 +36,10 @@ private:
 	int Device = 0;
 	cudnnTensorDescriptor_t CudnnDesc;
 
-	cudaDataType_t CudaDataType;
-	cudnnDataType_t CudnnDataType;
 
 public:
+	cudaDataType_t CudaDataType;
+	cudnnDataType_t CudnnDataType;
 
 	Tensor(int n, int c, int h, int w);
 	Tensor(int n, int c, int h, int w, T* hostData);
@@ -54,7 +55,7 @@ public:
 
 	Tensor(int n, int c, int h, int w, T* view_data_ptr,
 		int original_n_stride, int original_c_stride, int original_h_stride, int original_w_stride,
-		bool is_view_flag);
+		bool is_view_flag,int dimSize);
 
 	~Tensor();
 
@@ -68,8 +69,12 @@ public:
 	int GetC() const { return C; }
 	int GetH() const { return H; }
 	int GetW() const { return W; }
+	int GetDimsize() const { return DimSize; }
 	T* GetData() const { return Data; }
-	T** GetBatchPtrs() const { return BatchPtrs; }
+	void** GetBatchPtrs() const { return reinterpret_cast<void**>(BatchPtrs); }
+
+	int GetLen(int dim);
+	int GetStride(int dim);
 
 	cudnnTensorDescriptor_t GetDesc();
 
@@ -80,6 +85,10 @@ public:
 	std::vector<Tensor<T>> Chunk(int dim, int numOfChunk);
 	void Reshape(int n, int c, int h, int w);
 
+	void SetValue(int n, int c, int h, int w, T value);
+	void SetValue(int n, int h, int w, T value);
+	void SetValue(int h, int w, T value);
+	void SetValue(int w, T value);
 
 	std::string ToString() const;
 
@@ -88,17 +97,17 @@ public:
 
 	template <>
 	constexpr cudaDataType_t GetCudaDataType<float>() {
-		return CUDA_R_32F;
+		return CUDA_C_32F;
 	}
 
 	template <>
 	constexpr cudaDataType_t GetCudaDataType<double>() {
-		return CUDA_R_64F;
+		return CUDA_C_64F;
 	}
 
 	template <>
 	constexpr cudaDataType_t GetCudaDataType<__half>() {
-		return CUDA_R_16F;
+		return CUDA_C_16F;
 	}
 
 	template <>
