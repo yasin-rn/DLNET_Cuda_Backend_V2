@@ -720,8 +720,7 @@ std::string getFriendlyTypeName(const std::type_info& ti) {
 	if (ti == typeid(double)) return "float64";
 	if (ti == typeid(int)) return "int32";
 	if (ti == typeid(__half)) return "float16";
-	if (ti == typeid(__nv_fp8_e5m2)) return "fp8_e5m2";
-	if (ti == typeid(__nv_fp8_e4m3)) return "fp8_e4m3";
+	if (ti == typeid(int8_t)) return "int8_t";
 
 	return ti.name();
 }
@@ -787,10 +786,7 @@ std::string Tensor<T>::ToString() const {
 		if constexpr (std::is_same_v<T, __half>) {
 			oss << __half2float(val);
 		}
-		else if constexpr (std::is_same_v<T, __nv_fp8_e5m2> || std::is_same_v<T, __nv_fp8_e4m3>) {
-			oss << static_cast<float>(val);
-		}
-		else if constexpr (std::is_same_v<T, __nv_fp4_e2m1> || std::is_same_v<T, __nv_fp8_e8m0>) { // Varsayımsal FP4 ve diğer FP8 için
+		else if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int8_t>) {
 			oss << static_cast<float>(val);
 		}
 		else {
@@ -878,6 +874,4 @@ template class Tensor<float>;
 template class Tensor<double>;
 
 template class Tensor<__half>;
-template class Tensor<__nv_fp8_e5m2>;
-template class Tensor<__nv_fp8_e4m3>;
-template class Tensor<__nv_fp4_e2m1>;
+template class Tensor<int8_t>;

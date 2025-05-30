@@ -55,7 +55,7 @@ public:
 
 	Tensor(int n, int c, int h, int w, T* view_data_ptr,
 		int original_n_stride, int original_c_stride, int original_h_stride, int original_w_stride,
-		bool is_view_flag,int dimSize);
+		bool is_view_flag, int dimSize);
 
 	~Tensor();
 
@@ -92,7 +92,7 @@ public:
 
 	std::string ToString() const;
 
-	
+
 
 
 };
@@ -118,22 +118,8 @@ constexpr cudaDataType_t GetCudaDataType<__half>() {
 }
 
 template <>
-constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e5m2>() {
-	return CUDA_R_8F_E5M2;
-}
-
-template <>
-constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e4m3>() {
-	return CUDA_R_8F_E4M3;
-}
-
-template <>
-constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e8m0>() {
-	return CUDA_R_8F_UE8M0;
-}
-template <>
-constexpr cudaDataType_t GetCudaDataType<__nv_fp4_e2m1>() {
-	return CUDA_R_4F_E2M1;
+constexpr cudaDataType_t GetCudaDataType<int8_t>() {
+	return CUDA_R_8I;
 }
 
 
@@ -156,21 +142,6 @@ constexpr cudnnDataType_t GetCudnnDataType<__half>() {
 }
 
 template <>
-constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e5m2>() {
-	return CUDNN_DATA_FP8_E5M2;
+constexpr cudnnDataType_t GetCudnnDataType<int8_t>() {
+	return CUDNN_DATA_INT8;
 }
-
-template <>
-constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e4m3>() {
-	return CUDNN_DATA_FP8_E4M3;
-}
-
-template <>
-constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e8m0>() {
-	return CUDNN_DATA_FP8_E8M0;
-}
-template <>
-constexpr cudnnDataType_t GetCudnnDataType<__nv_fp4_e2m1>() {
-	return CUDNN_DATA_FP4_E2M1;
-}
-

@@ -6,8 +6,8 @@
 #pragma comment(lib, "cublas.lib")
 #pragma comment(lib, "cudnn.lib")
 
-template <typename T>
-void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, bool aTrans, bool bTrans, float alpha = 1, float beta = 0)
+template <typename T, typename U>
+void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<U>& C, bool aTrans, bool bTrans, float alpha = 1, float beta = 0)
 {
 	int m, n, k, lda, ldb, ldc;
 	cublasStatus_t status;
@@ -33,11 +33,10 @@ void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, boo
 			&alpha,
 			B.GetData(), CUDA_R_8I, lda,
 			A.GetData(), CUDA_R_8I, ldb,
-			&beta, 
-			C.GetData(), CUDA_R_32F, ldc,
-			CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
-		std::cout<<(status);
-		break; 
+			&beta,
+			C.GetData(), CUDA_R_8I, ldc,
+			CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+		break;
 
 	case(3):
 
@@ -88,28 +87,28 @@ void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, boo
 			&beta,
 			C.GetBatchPtrs(), C.CudaDataType, ldc,
 			A.GetLen(0) + A.GetLen(1), CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
-
+ 
 		break;
 	default:
 		break;
 	}
 
 }
- 
+
 
 int main() {
 	cublasHandle_t handle;
 	cublasCreate(&handle);
 
-	Tensor<__nv_fp8_e5m2> A(5, 4);
-	Tensor<__nv_fp8_e5m2> B(4, 3);
-	Tensor<__nv_fp8_e5m2> C(5, 3);
-	 
+	Tensor<int8_t> A(5, 4);
+	Tensor<int8_t> B(4, 3);
+	Tensor<float> C(5, 3);
+
 	float alpha = static_cast<float>(1.0f);
 	float beta = static_cast<float>(0.0f);
 
-	A.Fill(static_cast<__nv_fp8_e5m2>(0.01f));
-	B.Fill(static_cast<__nv_fp8_e5m2>(0.01f));
+	A.Fill((2));
+	B.Fill((2));
 
 	auto A_chunks = A.Chunk(1, 2);
 	auto B_chunks = B.Chunk(1, 2);

@@ -38,11 +38,8 @@ __global__ void FillRandomUniformKernel(T* data, size_t size, unsigned long long
 			else if constexpr (std::is_same_v<T, __half>) {
 				data[i] = __float2half(rand_val);
 			}
-			else if constexpr (std::is_same_v<T, __nv_fp8_e5m2>) {
-				data[i] = static_cast<__nv_fp8_e5m2>(rand_val);
-			}
-			else if constexpr (std::is_same_v<T, __nv_fp8_e4m3>) {
-				data[i] = static_cast<__nv_fp8_e4m3>(rand_val);
+			else if constexpr (std::is_same_v<T, int8_t>) {
+				data[i] = static_cast<int8_t>(rand_val);
 			}
 		}
 	}
