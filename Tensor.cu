@@ -715,6 +715,17 @@ void Tensor<T>::SetValue(int w, T value)
 	cudaMemcpy(this->Data + index, &value, sizeof(T), cudaMemcpyHostToDevice);
 }
 
+std::string getFriendlyTypeName(const std::type_info& ti) {
+	if (ti == typeid(float)) return "float32";
+	if (ti == typeid(double)) return "float64";
+	if (ti == typeid(int)) return "int32";
+	if (ti == typeid(__half)) return "float16";
+	if (ti == typeid(__nv_fp8_e5m2)) return "fp8_e5m2";
+	if (ti == typeid(__nv_fp8_e4m3)) return "fp8_e4m3";
+
+	return ti.name();
+}
+
 template <typename T>
 std::string Tensor<T>::ToString() const {
 	std::ostringstream oss;
@@ -858,16 +869,6 @@ std::string Tensor<T>::ToString() const {
 	oss << ", device=cuda:" << this->Device << ")";
 
 	return oss.str();
-}
-std::string getFriendlyTypeName(const std::type_info& ti) {
-	if (ti == typeid(float)) return "float32";
-	if (ti == typeid(double)) return "float64";
-	if (ti == typeid(int)) return "int32";
-	if (ti == typeid(__half)) return "float16";
-	if (ti == typeid(__nv_fp8_e5m2)) return "fp8_e5m2";
-	if (ti == typeid(__nv_fp8_e4m3)) return "fp8_e4m3";
-
-	return ti.name();
 }
 
 

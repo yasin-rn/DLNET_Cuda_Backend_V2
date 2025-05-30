@@ -103,7 +103,7 @@ int main() {
 	Tensor<float> A(5, 4);
 	Tensor<float> B(4, 3);
 	Tensor<float> C(5, 3);
-
+	 
 	float alpha = static_cast<float>(1.0f);
 	float beta = static_cast<float>(0.0f);
 
