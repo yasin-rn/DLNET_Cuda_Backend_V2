@@ -36,7 +36,8 @@ void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, boo
 			&beta, 
 			C.GetData(), CUDA_R_32F, ldc,
 			CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
-		break;
+		std::cout<<(status);
+		break; 
 
 	case(3):
 
@@ -107,8 +108,8 @@ int main() {
 	float alpha = static_cast<float>(1.0f);
 	float beta = static_cast<float>(0.0f);
 
-	A.FillRandomUniform();
-	B.FillRandomUniform();
+	A.Fill(static_cast<__nv_fp8_e5m2>(0.01f));
+	B.Fill(static_cast<__nv_fp8_e5m2>(0.01f));
 
 	auto A_chunks = A.Chunk(1, 2);
 	auto B_chunks = B.Chunk(1, 2);
