@@ -31,11 +31,11 @@ void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, boo
 			n,
 			k,
 			&alpha,
-			B.GetData(), B.CudaDataType, lda,
-			A.GetData(), A.CudaDataType, ldb,
+			B.GetData(), CUDA_R_8I, lda,
+			A.GetData(), CUDA_R_8I, ldb,
 			&beta,
 			C.GetData(), C.CudaDataType, ldc,
-			C.CudaDataType, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+			CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
 		break;
 
 	case(3):
@@ -60,7 +60,7 @@ void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, boo
 			A.GetBatchPtrs(), A.CudaDataType, ldb,
 			&beta,
 			C.GetBatchPtrs(), C.CudaDataType, ldc,
-			A.GetLen(0), C.CudaDataType, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+			A.GetLen(0), CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
 
 		break;
 
@@ -86,8 +86,8 @@ void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, boo
 			A.GetBatchPtrs(), A.CudaDataType, ldb,
 			&beta,
 			C.GetBatchPtrs(), C.CudaDataType, ldc,
-			A.GetLen(0) + A.GetLen(1), C.CudaDataType, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
-		 
+			A.GetLen(0) + A.GetLen(1), CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+
 		break;
 	default:
 		break;
@@ -100,13 +100,12 @@ int main() {
 	cublasHandle_t handle;
 	cublasCreate(&handle);
 
-	Tensor<__nv_fp8_e5m2> A(5, 8);
-	Tensor<__nv_fp8_e5m2> B(4, 6);
-	Tensor<__nv_fp8_e5m2> C1(5, 3);
-	Tensor<__nv_fp8_e5m2> C2(5, 3);
+	Tensor<float> A(5, 4);
+	Tensor<float> B(4, 3);
+	Tensor<float> C(5, 3);
 
-	__nv_fp8_e5m2 alpha = static_cast<__nv_fp8_e5m2>(1.0f);
-	__nv_fp8_e5m2 beta = static_cast<__nv_fp8_e5m2>(0.0f);
+	float alpha = static_cast<float>(1.0f);
+	float beta = static_cast<float>(0.0f);
 
 	A.FillRandomUniform();
 	B.FillRandomUniform();
@@ -114,16 +113,11 @@ int main() {
 	auto A_chunks = A.Chunk(1, 2);
 	auto B_chunks = B.Chunk(1, 2);
 
-	Matmul(handle, A_chunks[0], B_chunks[0], C1, false, false, alpha, beta);
-	Matmul(handle, A_chunks[1], B_chunks[1], C2, false, false, alpha, beta);
+	Matmul(handle, A, B, C, false, false, alpha, beta);
 
-	std::cout << "A[0]:" << A_chunks[0].ToString() << std::endl;
-	std::cout << "B[0]:" << B_chunks[0].ToString() << std::endl;
-	std::cout << "C1:" << C1.ToString() << std::endl;
-
-	std::cout << "A[1]:" << A_chunks[1].ToString() << std::endl;
-	std::cout << "B[1]:" << B_chunks[1].ToString() << std::endl;
-	std::cout << "C2:" << C2.ToString() << std::endl;
+	std::cout << "A:" << A.ToString() << std::endl;
+	std::cout << "B:" << B.ToString() << std::endl;
+	std::cout << "C2:" << C.ToString() << std::endl;
 
 	cublasDestroy(handle);
 
