@@ -7,7 +7,7 @@
 #pragma comment(lib, "cudnn.lib")
 
 template <typename T>
-void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, bool aTrans, bool bTrans, T alpha = 1, T beta = 0)
+void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, bool aTrans, bool bTrans, float alpha = 1, float beta = 0)
 {
 	int m, n, k, lda, ldb, ldc;
 	cublasStatus_t status;
@@ -33,8 +33,8 @@ void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, boo
 			&alpha,
 			B.GetData(), CUDA_R_8I, lda,
 			A.GetData(), CUDA_R_8I, ldb,
-			&beta,
-			C.GetData(), C.CudaDataType, ldc,
+			&beta, 
+			C.GetData(), CUDA_R_32F, ldc,
 			CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
 		break;
 
@@ -100,9 +100,9 @@ int main() {
 	cublasHandle_t handle;
 	cublasCreate(&handle);
 
-	Tensor<float> A(5, 4);
-	Tensor<float> B(4, 3);
-	Tensor<float> C(5, 3);
+	Tensor<__nv_fp8_e5m2> A(5, 4);
+	Tensor<__nv_fp8_e5m2> B(4, 3);
+	Tensor<__nv_fp8_e5m2> C(5, 3);
 	 
 	float alpha = static_cast<float>(1.0f);
 	float beta = static_cast<float>(0.0f);
