@@ -92,81 +92,85 @@ public:
 
 	std::string ToString() const;
 
-	template <typename U>
-	constexpr cudaDataType_t GetCudaDataType();
+	
 
-	template <>
-	constexpr cudaDataType_t GetCudaDataType<float>() {
-		return CUDA_C_32F;
-	}
-
-	template <>
-	constexpr cudaDataType_t GetCudaDataType<double>() {
-		return CUDA_C_64F;
-	}
-
-	template <>
-	constexpr cudaDataType_t GetCudaDataType<__half>() {
-		return CUDA_C_16F;
-	}
-
-	template <>
-	constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e5m2>() {
-		return CUDA_R_8F_E5M2;
-	}
-
-	template <>
-	constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e4m3>() {
-		return CUDA_R_8F_E4M3;
-	}
-
-	template <>
-	constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e8m0>() {
-		return CUDA_R_8F_UE8M0;
-	}
-	template <>
-	constexpr cudaDataType_t GetCudaDataType<__nv_fp4_e2m1>() {
-		return CUDA_R_4F_E2M1;
-	}
-
-	template <typename U>
-	constexpr cudnnDataType_t GetCudnnDataType();
-
-	template <>
-	constexpr cudnnDataType_t GetCudnnDataType<float>() {
-		return CUDNN_DATA_FLOAT;
-	}
-
-	template <>
-	constexpr cudnnDataType_t GetCudnnDataType<double>() {
-		return CUDNN_DATA_DOUBLE;
-	}
-
-	template <>
-	constexpr cudnnDataType_t GetCudnnDataType<__half>() {
-		return CUDNN_DATA_HALF;
-	}
-
-	template <>
-	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e5m2>() {
-		return CUDNN_DATA_FP8_E5M2;
-	}
-
-	template <>
-	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e4m3>() {
-		return CUDNN_DATA_FP8_E4M3;
-	}
-
-	template <>
-	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e8m0>() {
-		return CUDNN_DATA_FP8_E8M0;
-	}
-	template <>
-	constexpr cudnnDataType_t GetCudnnDataType<__nv_fp4_e2m1>() {
-		return CUDNN_DATA_FP4_E2M1;
-	}
 
 };
 
 
+
+template <typename U>
+constexpr cudaDataType_t GetCudaDataType();
+
+template <>
+constexpr cudaDataType_t GetCudaDataType<float>() {
+	return CUDA_C_32F;
+}
+
+template <>
+constexpr cudaDataType_t GetCudaDataType<double>() {
+	return CUDA_C_64F;
+}
+
+template <>
+constexpr cudaDataType_t GetCudaDataType<__half>() {
+	return CUDA_C_16F;
+}
+
+template <>
+constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e5m2>() {
+	return CUDA_R_8F_E5M2;
+}
+
+template <>
+constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e4m3>() {
+	return CUDA_R_8F_E4M3;
+}
+
+template <>
+constexpr cudaDataType_t GetCudaDataType<__nv_fp8_e8m0>() {
+	return CUDA_R_8F_UE8M0;
+}
+template <>
+constexpr cudaDataType_t GetCudaDataType<__nv_fp4_e2m1>() {
+	return CUDA_R_4F_E2M1;
+}
+
+
+template <typename U>
+constexpr cudnnDataType_t GetCudnnDataType();
+
+template <>
+constexpr cudnnDataType_t GetCudnnDataType<float>() {
+	return CUDNN_DATA_FLOAT;
+}
+
+template <>
+constexpr cudnnDataType_t GetCudnnDataType<double>() {
+	return CUDNN_DATA_DOUBLE;
+}
+
+template <>
+constexpr cudnnDataType_t GetCudnnDataType<__half>() {
+	return CUDNN_DATA_HALF;
+}
+
+template <>
+constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e5m2>() {
+	return CUDNN_DATA_FP8_E5M2;
+}
+
+template <>
+constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e4m3>() {
+	return CUDNN_DATA_FP8_E4M3;
+}
+
+template <>
+constexpr cudnnDataType_t GetCudnnDataType<__nv_fp8_e8m0>() {
+	return CUDNN_DATA_FP8_E8M0;
+}
+template <>
+constexpr cudnnDataType_t GetCudnnDataType<__nv_fp4_e2m1>() {
+	return CUDNN_DATA_FP4_E2M1;
+}
 

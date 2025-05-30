@@ -94,7 +94,7 @@ void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<T>& C, boo
 	}
 
 }
-
+ 
 
 int main() {
 	cublasHandle_t handle;
