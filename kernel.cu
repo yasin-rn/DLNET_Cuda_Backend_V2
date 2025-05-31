@@ -34,7 +34,7 @@ void Matmul(cublasHandle_t handle, Tensor<T>& A, Tensor<T>& B, Tensor<U>& C, boo
 			B.GetData(), CUDA_R_8I, lda,
 			A.GetData(), CUDA_R_8I, ldb,
 			&beta,
-			C.GetData(), CUDA_R_8I, ldc,
+			C.GetData(), CUDA_R_32F, ldc,
 			CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
 		break;
 
@@ -100,14 +100,14 @@ int main() {
 	cublasHandle_t handle;
 	cublasCreate(&handle);
 
-	Tensor<int8_t> A(5, 4);
-	Tensor<int8_t> B(4, 3);
+	Tensor<float> A(5, 4);
+	Tensor<float> B(4, 3);
 	Tensor<float> C(5, 3);
 
 	float alpha = static_cast<float>(1.0f);
 	float beta = static_cast<float>(0.0f);
 
-	A.Fill((2));
+	A.Fill((2.1f));
 	B.Fill((2));
 
 	auto A_chunks = A.Chunk(1, 2);

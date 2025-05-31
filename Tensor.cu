@@ -716,11 +716,12 @@ void Tensor<T>::SetValue(int w, T value)
 }
 
 std::string getFriendlyTypeName(const std::type_info& ti) {
-	if (ti == typeid(float)) return "float32";
-	if (ti == typeid(double)) return "float64";
-	if (ti == typeid(int)) return "int32";
-	if (ti == typeid(__half)) return "float16";
-	if (ti == typeid(int8_t)) return "int8_t";
+	if (ti == typeid(__half))    return "float16";
+	if (ti == typeid(float))     return "float32";
+	if (ti == typeid(double))    return "float64";
+	if (ti == typeid(int8_t))    return "int8";
+	if (ti == typeid(int32_t))   return "int32";
+	if (ti == typeid(int64_t))   return "int64";
 
 	return ti.name();
 }
@@ -784,15 +785,28 @@ std::string Tensor<T>::ToString() const {
 
 	auto print_val = [&](T val) {
 		if constexpr (std::is_same_v<T, __half>) {
-			oss << __half2float(val);
+			oss << std::fixed << std::setprecision(4) << static_cast<float>(val);
 		}
-		else if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int8_t>) {
-			oss << static_cast<float>(val);
+		else if constexpr (std::is_same_v<T, float>) {
+			oss << std::fixed << std::setprecision(4) << val;
+		}
+		else if constexpr (std::is_same_v<T, double>) {
+			oss << std::fixed << std::setprecision(4) << val;
+		}
+		else if constexpr (std::is_same_v<T, int8_t>) {
+			oss << static_cast<int>(val);
+		}
+		else if constexpr (std::is_same_v<T, int32_t>) {
+			oss << val;
+		}
+		else if constexpr (std::is_same_v<T, int64_t>) {
+			oss << static_cast<long long>(val);
 		}
 		else {
 			oss << std::fixed << std::setprecision(4) << static_cast<float>(val);
 		}
 		};
+
 
 	const int PRINT_THRESHOLD_W = 10;
 	const int EDGE_ITEMS_W = 3;
@@ -869,9 +883,10 @@ std::string Tensor<T>::ToString() const {
 
 
 
-
+template class Tensor<__half>;
 template class Tensor<float>;
 template class Tensor<double>;
 
-template class Tensor<__half>;
 template class Tensor<int8_t>;
+template class Tensor<int32_t>;
+template class Tensor<int64_t>;

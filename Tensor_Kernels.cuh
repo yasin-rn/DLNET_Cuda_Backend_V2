@@ -23,24 +23,32 @@ __global__ void FillRandomUniformKernel(T* data, size_t size, unsigned long long
 	size_t gridStride = static_cast<size_t>(blockDim.x) * gridDim.x;
 	curandState_t state;
 	curand_init(seed, tid, 0, &state);
+
 	for (size_t i = tid; i < size; i += gridStride) {
 
 		if constexpr (std::is_same_v<T, double>) {
-			data[i] = static_cast<T>(curand_uniform_double(&state));
+			data[i] = static_cast<double>(curand_uniform_double(&state));  
 		}
-		else
-		{
-			float rand_val = curand_uniform(&state);
-
-			if constexpr (std::is_same_v<T, float>) {
-				data[i] = rand_val;
-			}
-			else if constexpr (std::is_same_v<T, __half>) {
-				data[i] = __float2half(rand_val);
-			}
-			else if constexpr (std::is_same_v<T, int8_t>) {
-				data[i] = static_cast<int8_t>(rand_val);
-			}
+		else if constexpr (std::is_same_v<T, float>) {
+			data[i] = curand_uniform(&state); 
+		}
+		else if constexpr (std::is_same_v<T, __half>) {
+			data[i] = __float2half(curand_uniform(&state)); 
+		}
+		else if constexpr (std::is_same_v<T, int8_t>) {
+			int randval = curand(&state) % 256; 
+			data[i] = static_cast<int8_t>(randval - 128);
+		}
+		else if constexpr (std::is_same_v<T, int32_t>) {
+			data[i] = static_cast<int32_t>(curand(&state)); 
+		}
+		else if constexpr (std::is_same_v<T, int64_t>) {
+			uint64_t low = static_cast<uint64_t>(curand(&state));
+			uint64_t high = static_cast<uint64_t>(curand(&state));
+			data[i] = static_cast<int64_t>((high << 32) | low);
+		}
+		else {
+			data[i] = static_cast<T>(curand_uniform(&state));
 		}
 	}
 }
