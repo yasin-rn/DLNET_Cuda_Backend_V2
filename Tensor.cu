@@ -1,13 +1,12 @@
 ﻿#include "Tensor.cuh"
 #include <cudnn.h>
 
-
 template <typename T>
 Tensor<T>::Tensor(int n, int c, int h, int w) :N(n), C(c), H(h), W(w)
 {
 	DimSize = 4;
-	CudaDataType = GetCudaDataType<T>();
-	CudnnDataType = GetCudnnDataType<T>();
+	CudaDataType = GetCudaDType<T>();
+	CudnnDataType = GetCudnnDType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -29,7 +28,7 @@ Tensor<T>::Tensor(int n, int c, int h, int w) :N(n), C(c), H(h), W(w)
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * C * sizeof(T*), cudaMemcpyHostToDevice);
 
 	cudnnCreateTensorDescriptor(&CudnnDesc);
-	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDataType<T>(), N, C, H, W);
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 
 
 }
@@ -38,8 +37,8 @@ Tensor<T>::Tensor(int n, int c, int h, int w, T* hostData) :N(n), C(c), H(h), W(
 {
 
 	DimSize = 4;
-	CudaDataType = GetCudaDataType<T>();
-	CudnnDataType = GetCudnnDataType<T>();
+	CudaDataType = GetCudaDType<T>();
+	CudnnDataType = GetCudnnDType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -62,7 +61,7 @@ Tensor<T>::Tensor(int n, int c, int h, int w, T* hostData) :N(n), C(c), H(h), W(
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * C * sizeof(T*), cudaMemcpyHostToDevice);
 
 	cudnnCreateTensorDescriptor(&CudnnDesc);
-	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDataType<T>(), N, C, H, W);
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 
 }
 
@@ -71,8 +70,8 @@ Tensor<T>::Tensor(int n, int h, int w) :N(n), C(1), H(h), W(w)
 {
 
 	DimSize = 3;
-	CudaDataType = GetCudaDataType<T>();
-	CudnnDataType = GetCudnnDataType<T>();
+	CudaDataType = GetCudaDType<T>();
+	CudnnDataType = GetCudnnDType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -94,15 +93,15 @@ Tensor<T>::Tensor(int n, int h, int w) :N(n), C(1), H(h), W(w)
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
 
 	cudnnCreateTensorDescriptor(&CudnnDesc);
-	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDataType<T>(), N, C, H, W);
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 }
 template <typename T>
 Tensor<T>::Tensor(int n, int h, int w, T* hostData) :N(n), C(1), H(h), W(w)
 {
 
 	DimSize = 3;
-	CudaDataType = GetCudaDataType<T>();
-	CudnnDataType = GetCudnnDataType<T>();
+	CudaDataType = GetCudaDType<T>();
+	CudnnDataType = GetCudnnDType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -125,7 +124,7 @@ Tensor<T>::Tensor(int n, int h, int w, T* hostData) :N(n), C(1), H(h), W(w)
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
 
 	cudnnCreateTensorDescriptor(&CudnnDesc);
-	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDataType<T>(), N, C, H, W);
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 }
 
 template <typename T>
@@ -133,8 +132,8 @@ Tensor<T>::Tensor(int h, int w) :N(1), C(1), H(h), W(w)
 {
 
 	DimSize = 2;
-	CudaDataType = GetCudaDataType<T>();
-	CudnnDataType = GetCudnnDataType<T>();
+	CudaDataType = GetCudaDType<T>();
+	CudnnDataType = GetCudnnDType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -156,14 +155,14 @@ Tensor<T>::Tensor(int h, int w) :N(1), C(1), H(h), W(w)
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
 
 	cudnnCreateTensorDescriptor(&CudnnDesc);
-	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDataType<T>(), N, C, H, W);
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 }
 template <typename T>
 Tensor<T>::Tensor(int h, int w, T* hostData) :N(1), C(1), H(h), W(w)
 {
 	DimSize = 2;
-	CudaDataType = GetCudaDataType<T>();
-	CudnnDataType = GetCudnnDataType<T>();
+	CudaDataType = GetCudaDType<T>();
+	CudnnDataType = GetCudnnDType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -186,15 +185,15 @@ Tensor<T>::Tensor(int h, int w, T* hostData) :N(1), C(1), H(h), W(w)
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
 
 	cudnnCreateTensorDescriptor(&CudnnDesc);
-	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDataType<T>(), N, C, H, W);
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 }
 
 template <typename T>
 Tensor<T>::Tensor(int w) :N(1), C(1), H(1), W(w)
 {
 	DimSize = 1;
-	CudaDataType = GetCudaDataType<T>();
-	CudnnDataType = GetCudnnDataType<T>();
+	CudaDataType = GetCudaDType<T>();
+	CudnnDataType = GetCudnnDType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -216,15 +215,15 @@ Tensor<T>::Tensor(int w) :N(1), C(1), H(1), W(w)
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
 
 	cudnnCreateTensorDescriptor(&CudnnDesc);
-	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDataType<T>(), N, C, H, W);
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 
 }
 template <typename T>
 Tensor<T>::Tensor(int w, T* hostData) :N(1), C(1), H(1), W(w)
 {
 	DimSize = 1;
-	CudaDataType = GetCudaDataType<T>();
-	CudnnDataType = GetCudnnDataType<T>();
+	CudaDataType = GetCudaDType<T>();
+	CudnnDataType = GetCudnnDType<T>();
 
 	Strides[0] = 1;
 	Strides[1] = W;
@@ -247,7 +246,7 @@ Tensor<T>::Tensor(int w, T* hostData) :N(1), C(1), H(1), W(w)
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
 
 	cudnnCreateTensorDescriptor(&CudnnDesc);
-	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDataType<T>(), N, C, H, W);
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 }
 
 template <typename T>
@@ -257,8 +256,8 @@ Tensor<T>::Tensor(int n, int c, int h, int w, T* view_data_ptr,
 	: N(n), C(c), H(h), W(w), Data(view_data_ptr), IsOwnData(!is_view_flag), IsChunkPart(is_view_flag), BatchPtrs(nullptr), CudnnDesc(nullptr), DimSize(dimSize)
 {
 	cudaGetDevice(&Device);
-	CudaDataType = GetCudaDataType<T>();
-	CudnnDataType = GetCudnnDataType<T>();
+	CudaDataType = GetCudaDType<T>();
+	CudnnDataType = GetCudnnDType<T>();
 
 	if (IsOwnData) {
 		TotalSize = sizeof(T) * N * C * H * W;
@@ -273,7 +272,7 @@ Tensor<T>::Tensor(int n, int c, int h, int w, T* view_data_ptr,
 	this->Strides[3] = original_n_stride;
 
 	cudnnCreateTensorDescriptor(&CudnnDesc);
-	cudnnSetTensor4dDescriptorEx(CudnnDesc, GetCudnnDataType<T>(), N, C, H, W,
+	cudnnSetTensor4dDescriptorEx(CudnnDesc, GetCudnnDType<T>(), N, C, H, W,
 		original_n_stride, original_c_stride, original_h_stride, original_w_stride);
 
 	if (N > 0) {
@@ -450,6 +449,18 @@ cudnnTensorDescriptor_t Tensor<T>::GetDesc()
 {
 	return CudnnDesc;
 }
+
+template <typename T>
+cudaDataType_t Tensor<T>::GetCudaDataType()
+{
+	return CudaDataType;
+}
+template <typename T>
+cudnnDataType_t Tensor<T>::GetCudnnDataType()
+{
+	return CudnnDataType;
+}
+
 
 template <typename T>
 void Tensor<T>::Fill(T value)

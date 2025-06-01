@@ -11,7 +11,7 @@
 #include <sstream>     
 #include <iomanip>     
 #include <typeinfo>    
-
+#include "DataTypes.cuh"
 #include <cudnn.h>
 
 template <typename T>
@@ -36,10 +36,10 @@ private:
 	int Device = 0;
 	cudnnTensorDescriptor_t CudnnDesc;
 
-
-public:
 	cudaDataType_t CudaDataType;
 	cudnnDataType_t CudnnDataType;
+
+public:
 
 	Tensor(int n, int c, int h, int w);
 	Tensor(int n, int c, int h, int w, T* hostData);
@@ -70,6 +70,7 @@ public:
 	int GetH() const { return H; }
 	int GetW() const { return W; }
 	int GetDimsize() const { return DimSize; }
+
 	T* GetData() const { return Data; }
 	void** GetBatchPtrs() const { return reinterpret_cast<void**>(BatchPtrs); }
 
@@ -77,6 +78,9 @@ public:
 	int GetStride(int dim);
 
 	cudnnTensorDescriptor_t GetDesc();
+	
+	cudaDataType_t GetCudaDataType();
+	cudnnDataType_t GetCudnnDataType();
 
 	void Fill(T value);
 	void FillRandomUniform();
@@ -90,73 +94,9 @@ public:
 	void SetValue(int h, int w, T value);
 	void SetValue(int w, T value);
 
+
 	std::string ToString() const;
-
-
-
 
 };
 
 
-
-template <typename U>
-constexpr cudaDataType_t GetCudaDataType();
-
-template <>
-constexpr cudaDataType_t GetCudaDataType<__half>() {
-	return CUDA_C_16F;
-}
-
-template <>
-constexpr cudaDataType_t GetCudaDataType<float>() {
-	return CUDA_C_32F;
-}
-
-template <>
-constexpr cudaDataType_t GetCudaDataType<double>() {
-	return CUDA_C_64F;
-}
-
-template <>
-constexpr cudaDataType_t GetCudaDataType<int8_t>() {
-	return CUDA_R_8I;
-}
-template <>
-constexpr cudaDataType_t GetCudaDataType<int32_t>() {
-	return CUDA_R_32I;
-}
-template <>
-constexpr cudaDataType_t GetCudaDataType<int64_t>() {
-	return CUDA_R_64I;
-}
-
-template <typename U>
-constexpr cudnnDataType_t GetCudnnDataType();
-
-template <>
-constexpr cudnnDataType_t GetCudnnDataType<__half>() {
-	return CUDNN_DATA_HALF;
-}
-
-template <>
-constexpr cudnnDataType_t GetCudnnDataType<float>() {
-	return CUDNN_DATA_FLOAT;
-}
-
-template <>
-constexpr cudnnDataType_t GetCudnnDataType<double>() {
-	return CUDNN_DATA_DOUBLE;
-}
-
-template <>
-constexpr cudnnDataType_t GetCudnnDataType<int8_t>() {
-	return CUDNN_DATA_INT8;
-}
-template <>
-constexpr cudnnDataType_t GetCudnnDataType<int32_t>() {
-	return CUDNN_DATA_INT32;
-}
-template <>
-constexpr cudnnDataType_t GetCudnnDataType<int64_t>() {
-	return CUDNN_DATA_INT64;
-}
