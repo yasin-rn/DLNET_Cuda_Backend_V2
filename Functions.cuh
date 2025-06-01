@@ -121,6 +121,22 @@ public:
 		cudnnDestroyActivationDescriptor(activationDesc);
 	}
 
+	template <typename T>
+	static void SoftmaxForward(cudnnHandle_t handle, Tensor<T>& input, Tensor<T>& output, T alpha, T beta)
+	{
+
+		cudnnStatus_t status = cudnnSoftmaxForward(
+			handle,
+			CUDNN_SOFTMAX_ACCURATE,
+			CUDNN_SOFTMAX_MODE_CHANNEL,
+			&alpha,
+			input.GetDesc(),
+			input.GetData(),
+			&beta,
+			output.GetDesc(),
+			output.GetData());
+	}
+
 private:
 
 };
