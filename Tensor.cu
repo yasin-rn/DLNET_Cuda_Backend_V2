@@ -306,6 +306,7 @@ Tensor<T>::~Tensor()
 	if (CudnnDesc != nullptr)
 	{
 		cudnnDestroyTensorDescriptor(CudnnDesc);
+		CudnnDesc = nullptr;
 	}
 }
 
