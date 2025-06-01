@@ -110,6 +110,17 @@ public:
 	}
 
 
+	template <typename T>
+	static void ActivationForward(cudnnHandle_t handle, Tensor<T>& input, Tensor<T>& output, cudnnActivationMode_t activation, T alpha, T beta)
+	{
+		cudnnActivationDescriptor_t activationDesc;
+		cudnnCreateActivationDescriptor(&activationDesc);
+		cudnnSetActivationDescriptor(activationDesc, activation, CUDNN_PROPAGATE_NAN, 0.0);
+
+		cudnnActivationForward(handle, activationDesc, &alpha, input.GetDesc(), input.GetData(), &beta, output.GetDesc(), output.GetData());
+		cudnnDestroyActivationDescriptor(activationDesc);
+	}
+
 private:
 
 };
