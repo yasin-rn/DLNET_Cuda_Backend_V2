@@ -137,6 +137,40 @@ public:
 			output.GetData());
 	}
 
+	template <typename T>
+	static void ReduceTensor(cudnnHandle_t handle, Tensor<T>& input, Tensor<T>& output, cudnnReduceTensorOp_t operation, T alpha, T beta)
+	{
+		cudnnReduceTensorDescriptor_t reduceDesc;
+		cudnnCreateReduceTensorDescriptor(&reduceDesc);
+		cudnnSetReduceTensorDescriptor(
+			reduceDesc,
+			operation,
+			input.GetCudnnDataType(),
+			CUDNN_NOT_PROPAGATE_NAN,
+			CUDNN_REDUCE_TENSOR_NO_INDICES,
+			CUDNN_32BIT_INDICES
+		);
+
+		size_t workspaceSize;
+		void* workspaceArea;
+
+		cudnnGetReductionWorkspaceSize(handle, reduceDesc, input.GetDesc(), output.GetDesc(), &workspaceSize);
+		cudaMalloc(&workspaceArea, workspaceSize);
+
+		cudnnStatus_t status =
+			cudnnReduceTensor(
+				handle,
+				reduceDesc,
+				nullptr, 0,
+				workspaceArea, workspaceSize,
+				&alpha, input.GetDesc(), input.GetData(),
+				&beta, output.GetDesc(), output.GetData()
+			);
+
+		cudnnDestroyReduceTensorDescriptor(reduceDesc);
+		cudaFree(workspaceArea);
+	}
+
 private:
 
 };
