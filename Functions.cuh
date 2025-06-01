@@ -103,7 +103,12 @@ public:
 
 	}
 
+	template <typename T>
+	static void Add(cudnnHandle_t handle, Tensor<T>& A, Tensor<T>& Bias, T alpha, T beta)
+	{
+		cudnnStatus_t status = cudnnAddTensor(handle, &alpha, Bias.GetDesc(), Bias.GetData(), &beta, A.GetDesc(), A.GetData());
 
+	}
 private:
 
 };
