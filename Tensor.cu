@@ -643,6 +643,10 @@ void Tensor<T>::Reshape(int n, int c, int h, int w)
 	Strides[2] = H * W;
 	Strides[3] = C * H * W;
 
+	std::vector<T*> hostPtrs(N);
+	for (size_t i = 0; i < N; ++i)
+		hostPtrs[i] = Data + i * Strides[2];
+
 	cudaFree(BatchPtrs);
 	cudaMalloc(&BatchPtrs, N * sizeof(T*));
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
@@ -695,6 +699,10 @@ void Tensor<T>::Reshape(int h, int w)
 	Strides[2] = H * W;
 	Strides[3] = C * H * W;
 
+	std::vector<T*> hostPtrs(N);
+	for (size_t i = 0; i < N; ++i)
+		hostPtrs[i] = Data + i * Strides[2];
+
 	cudaFree(BatchPtrs);
 	cudaMalloc(&BatchPtrs, N * sizeof(T*));
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
@@ -718,6 +726,10 @@ void Tensor<T>::Reshape(int w)
 	Strides[1] = W;
 	Strides[2] = H * W;
 	Strides[3] = C * H * W;
+
+	std::vector<T*> hostPtrs(N);
+	for (size_t i = 0; i < N; ++i)
+		hostPtrs[i] = Data + i * Strides[2];
 
 	cudaFree(BatchPtrs);
 	cudaMalloc(&BatchPtrs, N * sizeof(T*));
