@@ -317,7 +317,7 @@ Tensor<T>::Tensor(const Tensor<T>& other)
 	: N(other.N), C(other.C), H(other.H), W(other.W),
 	IsChunkPart(other.IsChunkPart), IsOwnData(true),
 	TotalSize(other.TotalSize),
-	CudaDataType(other.CudaDataType), CudnnDataType(other.CudnnDataType), CudnnDesc(other.CudnnDesc), DimSize(other.DimSize)
+	CudaDataType(other.CudaDataType), CudnnDataType(other.CudnnDataType), DimSize(other.DimSize)
 {
 
 
@@ -331,6 +331,10 @@ Tensor<T>::Tensor(const Tensor<T>& other)
 		hostPtrs[i] = Data + i * Strides[3];
 	cudaMalloc(&BatchPtrs, N * sizeof(T*));
 	cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
+
+	cudnnCreateTensorDescriptor(&CudnnDesc);
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
+
 
 }
 template <typename T>
@@ -362,7 +366,9 @@ Tensor<T>& Tensor<T>::operator=(const Tensor<T>& other)
 		cudaMalloc(&BatchPtrs, N * sizeof(T*));
 		cudaMemcpy(BatchPtrs, hostPtrs.data(), N * sizeof(T*), cudaMemcpyHostToDevice);
 
-		CudnnDesc = other.CudnnDesc;
+		cudnnCreateTensorDescriptor(&CudnnDesc);
+		cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
+
 	}
 	return *this;
 }
@@ -404,7 +410,8 @@ Tensor<T>& Tensor<T>::operator=(Tensor<T>&& other) noexcept
 		Data = other.Data;
 		BatchPtrs = other.BatchPtrs;
 
-		CudnnDesc = other.CudnnDesc;
+		cudnnCreateTensorDescriptor(&CudnnDesc);
+		cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 
 		other.Data = nullptr;
 		other.BatchPtrs = nullptr;
@@ -624,6 +631,8 @@ std::vector<Tensor<T>> Tensor<T>::Chunk(int dim, int numOfChunk) {
 template <typename T>
 void Tensor<T>::Reshape(int n, int c, int h, int w)
 {
+	DimSize = 4;
+
 	N = n;
 	C = c;
 	H = h;
@@ -633,11 +642,69 @@ void Tensor<T>::Reshape(int n, int c, int h, int w)
 	Strides[1] = W;
 	Strides[2] = H * W;
 	Strides[3] = C * H * W;
+
 	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
 
 }
 
 
+template <typename T>
+void Tensor<T>::Reshape(int n, int h, int w)
+{
+	DimSize = 3;
+
+	N = n;
+	C = 1;
+	H = h;
+	W = w;
+
+	Strides[0] = 1;
+	Strides[1] = W;
+	Strides[2] = H * W;
+	Strides[3] = C * H * W;
+
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
+
+}
+
+template <typename T>
+void Tensor<T>::Reshape(int h, int w)
+{
+	DimSize = 2;
+
+	N = 1;
+	C = 1;
+	H = h;
+	W = w;
+
+	Strides[0] = 1;
+	Strides[1] = W;
+	Strides[2] = H * W;
+	Strides[3] = C * H * W;
+
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
+
+}
+
+
+template <typename T>
+void Tensor<T>::Reshape(int w)
+{
+	DimSize = 1;
+
+	N = 1;
+	C = 1;
+	H = 1;
+	W = w;
+
+	Strides[0] = 1;
+	Strides[1] = W;
+	Strides[2] = H * W;
+	Strides[3] = C * H * W;
+
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
+
+}
 template <typename T>
 void Tensor<T>::SetValue(int n, int c, int h, int w, T value)
 {

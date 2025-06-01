@@ -78,7 +78,7 @@ public:
 	int GetStride(int dim);
 
 	cudnnTensorDescriptor_t GetDesc();
-	
+
 	cudaDataType_t GetCudaDataType();
 	cudnnDataType_t GetCudnnDataType();
 
@@ -88,6 +88,9 @@ public:
 
 	std::vector<Tensor<T>> Chunk(int dim, int numOfChunk);
 	void Reshape(int n, int c, int h, int w);
+	void Reshape(int n, int h, int w);
+	void Reshape(int h, int w);
+	void Reshape(int w);
 
 	void SetValue(int n, int c, int h, int w, T value);
 	void SetValue(int n, int h, int w, T value);
