@@ -2,6 +2,7 @@
 #include <cublas_v2.h>
 #include <cudnn.h>
 #include "Tensor.cuh"
+#include <iostream>
 
 class Functions
 {
@@ -56,7 +57,7 @@ public:
 			ldb = A.GetStride(1);
 			ldc = bTrans ? B.GetLen(1) : B.GetLen(2);
 
-			cublasGemmBatchedEx(
+			status = cublasGemmBatchedEx(
 				handle,
 				bTrans ? CUBLAS_OP_T : CUBLAS_OP_N,
 				aTrans ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -138,7 +139,7 @@ public:
 	}
 
 	template <typename T>
-	static void ReduceTensor(cudnnHandle_t handle, Tensor<T>& input, Tensor<T>& output, cudnnReduceTensorOp_t operation, T alpha, T beta)
+	static void ReduceTensor(cudnnHandle_t handle, Tensor<T>& input, Tensor<T>& output, cudnnReduceTensorOp_t operation, T alpha = 1, T beta = 0)
 	{
 		cudnnReduceTensorDescriptor_t reduceDesc;
 		cudnnCreateReduceTensorDescriptor(&reduceDesc);
@@ -170,6 +171,40 @@ public:
 		cudnnDestroyReduceTensorDescriptor(reduceDesc);
 		cudaFree(workspaceArea);
 	}
+
+	template <typename T>
+	static void MeanVariance(cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, Tensor<T>& input, Tensor<T>& mean, Tensor<T>& variance)
+	{
+		int N = input.GetLen(0);
+		int W = input.GetLen(1);
+
+		ReduceTensor(cudnnHandle, input, mean, CUDNN_REDUCE_TENSOR_AVG);
+
+		Tensor<T> X_Sub_Mean = input;
+
+		T val_one = static_cast<T>(1.0);
+		T val_minus_one = static_cast<T>(-1.0);
+
+		Functions::Add(cudnnHandle, X_Sub_Mean, mean, val_minus_one, val_one);
+
+		X_Sub_Mean.Reshape(N, 1, W);
+
+		T alpha_for_variance = static_cast<T>(1.0) / static_cast<T>(W);
+		T beta_for_variance = static_cast<T>(0.0);
+
+		Matmul(cublasHandle,
+			X_Sub_Mean,
+			X_Sub_Mean,
+			variance,
+			false,
+			true,
+			alpha_for_variance,
+			beta_for_variance);
+
+		variance.Reshape(N, 1);
+	}
+
+
 
 private:
 
