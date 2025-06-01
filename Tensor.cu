@@ -633,6 +633,8 @@ void Tensor<T>::Reshape(int n, int c, int h, int w)
 	Strides[1] = W;
 	Strides[2] = H * W;
 	Strides[3] = C * H * W;
+	cudnnSetTensor4dDescriptor(CudnnDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
+
 }
 
 
