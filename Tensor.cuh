@@ -34,7 +34,8 @@ private:
 	size_t TotalSize;
 
 	int Device = 0;
-	cudnnTensorDescriptor_t CudnnDesc;
+
+	cudnnTensorDescriptor_t TensorDesc;
 
 	cudaDataType_t CudaDataType;
 	cudnnDataType_t CudnnDataType;
@@ -77,7 +78,7 @@ public:
 	int GetLen(int dim);
 	int GetStride(int dim);
 
-	cudnnTensorDescriptor_t GetDesc();
+	cudnnTensorDescriptor_t GetTensorDesc();
 
 	cudaDataType_t GetCudaDataType();
 	cudnnDataType_t GetCudnnDataType();
