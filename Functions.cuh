@@ -105,14 +105,14 @@ public:
 	}
 
 	template <typename T>
-	static void Add(cudnnHandle_t handle, Tensor<T>& A, Tensor<T>& Bias, T alpha, T beta)
+	static void Add(cudnnHandle_t handle, Tensor<T>& A, Tensor<T>& Bias, T alpha = 1, T beta = 1)
 	{
 		cudnnAddTensor(handle, &alpha, Bias.GetDesc(), Bias.GetData(), &beta, A.GetDesc(), A.GetData());
 	}
 
 
 	template <typename T>
-	static void ActivationForward(cudnnHandle_t handle, Tensor<T>& input, Tensor<T>& output, cudnnActivationMode_t activation, T alpha, T beta)
+	static void ActivationForward(cudnnHandle_t handle, Tensor<T>& input, Tensor<T>& output, cudnnActivationMode_t activation, T alpha = 1, T beta = 0)
 	{
 		cudnnActivationDescriptor_t activationDesc;
 		cudnnCreateActivationDescriptor(&activationDesc);
@@ -123,10 +123,9 @@ public:
 	}
 
 	template <typename T>
-	static void SoftmaxForward(cudnnHandle_t handle, Tensor<T>& input, Tensor<T>& output, T alpha, T beta)
+	static void SoftmaxForward(cudnnHandle_t handle, Tensor<T>& input, Tensor<T>& output, T alpha = 1, T beta = 0)
 	{
-
-		cudnnStatus_t status = cudnnSoftmaxForward(
+		cudnnSoftmaxForward(
 			handle,
 			CUDNN_SOFTMAX_ACCURATE,
 			CUDNN_SOFTMAX_MODE_CHANNEL,
@@ -175,8 +174,8 @@ public:
 	template <typename T>
 	static void MeanVariance(cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, Tensor<T>& input, Tensor<T>& mean, Tensor<T>& variance)
 	{
-		int N = input.GetLen(0);
-		int W = input.GetLen(1);
+		int N = input.GetH();
+		int W = input.GetW();
 
 		ReduceTensor(cudnnHandle, input, mean, CUDNN_REDUCE_TENSOR_AVG);
 
@@ -192,6 +191,8 @@ public:
 		T alpha_for_variance = static_cast<T>(1.0) / static_cast<T>(W);
 		T beta_for_variance = static_cast<T>(0.0);
 
+		variance.Reshape(N, 1, 1);
+
 		Matmul(cublasHandle,
 			X_Sub_Mean,
 			X_Sub_Mean,
@@ -201,7 +202,46 @@ public:
 			alpha_for_variance,
 			beta_for_variance);
 
-		variance.Reshape(N, 1);
+
+	}
+
+	template <typename T>
+	static void LayerNormForward(cublasHandle_t cublasHandle, cudnnHandle_t cudnnHandle, Tensor<T>& input, Tensor<T>& output, Tensor<T>& scale, Tensor<T>& bias, T alpha = 1, T beta = 0, double epsilon = 1e-6)
+	{
+		int Channel = input.GetLen(0);
+		int Height = input.GetLen(1);
+
+		Tensor<T> mean(Channel, 1);
+		Tensor<T> variance(Channel, 1);
+
+		MeanVariance(cublasHandle, cudnnHandle, input, mean, variance);
+
+
+		mean.Reshape(1, Channel, 1, 1);
+		variance.Reshape(1, Channel, 1, 1);
+
+		scale.Reshape(1, Channel, 1, 1);
+		bias.Reshape(1, Channel, 1, 1);
+
+		input.Reshape(1, Channel, Height, 1);
+		output.Reshape(1, Channel, Height, 1);
+
+		cudnnNormalizationForwardInference(
+			cudnnHandle,
+			CUDNN_NORM_PER_CHANNEL,
+			CUDNN_NORM_OPS_NORM,
+			CUDNN_NORM_ALGO_STANDARD,
+			&alpha,
+			&beta,
+			input.GetDesc(), input.GetData(),
+			scale.GetDesc(), scale.GetData(), bias.GetData(),
+			mean.GetDesc(), mean.GetData(), variance.GetData(),
+			nullptr, nullptr, nullptr,
+			output.GetDesc(), output.GetData(),
+			epsilon, 1
+		);
+		input.Reshape(Channel, Height);
+		output.Reshape(Channel, Height);
 	}
 
 
