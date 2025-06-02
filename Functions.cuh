@@ -107,7 +107,7 @@ public:
 	template <typename T>
 	static void Add(cudnnHandle_t handle, Tensor<T>& A, Tensor<T>& Bias, T alpha = 1, T beta = 1)
 	{
-		cudnnAddTensor(handle, &alpha, Bias.GetDesc(), Bias.GetData(), &beta, A.GetDesc(), A.GetData());
+		cudnnAddTensor(handle, &alpha, Bias.GetTensorDesc(), Bias.GetData(), &beta, A.GetTensorDesc(), A.GetData());
 	}
 
 
@@ -118,7 +118,7 @@ public:
 		cudnnCreateActivationDescriptor(&activationDesc);
 		cudnnSetActivationDescriptor(activationDesc, activation, CUDNN_PROPAGATE_NAN, 0.0);
 
-		cudnnActivationForward(handle, activationDesc, &alpha, input.GetDesc(), input.GetData(), &beta, output.GetDesc(), output.GetData());
+		cudnnActivationForward(handle, activationDesc, &alpha, input.GetTensorDesc(), input.GetData(), &beta, output.GetTensorDesc(), output.GetData());
 		cudnnDestroyActivationDescriptor(activationDesc);
 	}
 
@@ -130,10 +130,10 @@ public:
 			CUDNN_SOFTMAX_ACCURATE,
 			CUDNN_SOFTMAX_MODE_CHANNEL,
 			&alpha,
-			input.GetDesc(),
+			input.GetTensorDesc(),
 			input.GetData(),
 			&beta,
-			output.GetDesc(),
+			output.GetTensorDesc(),
 			output.GetData());
 	}
 
@@ -154,7 +154,7 @@ public:
 		size_t workspaceSize;
 		void* workspaceArea;
 
-		cudnnGetReductionWorkspaceSize(handle, reduceDesc, input.GetDesc(), output.GetDesc(), &workspaceSize);
+		cudnnGetReductionWorkspaceSize(handle, reduceDesc, input.GetTensorDesc(), output.GetTensorDesc(), &workspaceSize);
 		cudaMalloc(&workspaceArea, workspaceSize);
 
 		cudnnStatus_t status =
@@ -163,8 +163,8 @@ public:
 				reduceDesc,
 				nullptr, 0,
 				workspaceArea, workspaceSize,
-				&alpha, input.GetDesc(), input.GetData(),
-				&beta, output.GetDesc(), output.GetData()
+				&alpha, input.GetTensorDesc(), input.GetData(),
+				&beta, output.GetTensorDesc(), output.GetData()
 			);
 
 		cudnnDestroyReduceTensorDescriptor(reduceDesc);
@@ -233,11 +233,11 @@ public:
 			CUDNN_NORM_ALGO_STANDARD,
 			&alpha,
 			&beta,
-			input.GetDesc(), input.GetData(),
-			scale.GetDesc(), scale.GetData(), bias.GetData(),
-			mean.GetDesc(), mean.GetData(), variance.GetData(),
+			input.GetTensorDesc(), input.GetData(),
+			scale.GetTensorDesc(), scale.GetData(), bias.GetData(),
+			mean.GetTensorDesc(), mean.GetData(), variance.GetData(),
 			nullptr, nullptr, nullptr,
-			output.GetDesc(), output.GetData(),
+			output.GetTensorDesc(), output.GetData(),
 			epsilon, 1
 		);
 		input.Reshape(Channel, Height);
