@@ -839,60 +839,151 @@ std::string getFriendlyTypeName(const std::type_info& ti) {
 
 	return ti.name();
 }
+
 template <typename T>
-std::string Tensor<T>::ToString() const
-{
+std::string Tensor<T>::ToString() const {
 	std::ostringstream oss;
 
-	std::unique_ptr<T[]> hostData(new T[TotalSize / sizeof(T)]);
-	cudaMemcpy(hostData.get(), Data, TotalSize, cudaMemcpyDeviceToHost);
 
-	oss << "Tensor(shape=(" << N << ", " << C << ", " << H << ", " << W << "), data=\n";
+	size_t logical_num_elements = static_cast<size_t>(this->N) * this->C * this->H * this->W;
 
-	auto idx = [this](size_t n, size_t c, size_t h, size_t w) {
-		return n * Strides[3] + c * Strides[2] + h * Strides[1] + w;
-		};
-
-	auto indent = [](std::ostringstream& stream, int level) {
-		stream << std::string(level * 2, ' ');
-		};
-
-	for (size_t n = 0; n < N; ++n) {
-		indent(oss, 1);  oss << "[\n";
-
-		for (size_t c = 0; c < C; ++c) {
-			indent(oss, 2);  oss << "[\n";
-
-			for (size_t h = 0; h < H; ++h) {
-				indent(oss, 3);  oss << "[";
-
-				for (size_t w = 0; w < W; ++w) {
-					oss << std::fixed << std::setprecision(4)
-						<< static_cast<float>(hostData[idx(n, c, h, w)]);
-
-					if (w + 1 != W) oss << ", ";
-				}
-
-				oss << "]";
-				if (h + 1 != H) oss << ",";
-				oss << "\n";
-			}
-
-			indent(oss, 2); oss << "]";
-			if (c + 1 != C) oss << ",";
-			oss << "\n";
-		}
-
-		indent(oss, 1); oss << "]";
-		if (n + 1 != N) oss << ",";
-		oss << "\n";
+	if (Data == nullptr || logical_num_elements == 0) {
+		oss << "tensor([], dtype=" << getFriendlyTypeName(typeid(T)) << ", device=cuda:" << std::to_string(this->Device) << ")";
+		return oss.str();
 	}
 
-	oss << ")\n"; // Kapanış
+	std::vector<T> host_data_elements(logical_num_elements);
+
+	cudnnDataType_t dataType_desc;
+	int n_from_desc, c_from_desc, h_from_desc, w_from_desc;
+	int nStride_from_desc, cStride_from_desc, hStride_from_desc, wStride_from_desc;
+
+	cudnnGetTensor4dDescriptor(this->CudnnDesc,
+		&dataType_desc,
+		&n_from_desc, &c_from_desc, &h_from_desc, &w_from_desc,
+		&nStride_from_desc, &cStride_from_desc, &hStride_from_desc, &wStride_from_desc);
+
+	for (int n_idx = 0; n_idx < this->N; ++n_idx) {
+		for (int c_idx = 0; c_idx < this->C; ++c_idx) {
+			for (int h_idx = 0; h_idx < this->H; ++h_idx) {
+				for (int w_idx = 0; w_idx < this->W; ++w_idx) {
+					size_t offset_in_original_data =
+						static_cast<size_t>(n_idx) * nStride_from_desc +
+						static_cast<size_t>(c_idx) * cStride_from_desc +
+						static_cast<size_t>(h_idx) * hStride_from_desc +
+						static_cast<size_t>(w_idx) * wStride_from_desc;
+
+					size_t linear_idx_in_chunk_buffer =
+						static_cast<size_t>(n_idx) * this->C * this->H * this->W +
+						static_cast<size_t>(c_idx) * this->H * this->W +
+						static_cast<size_t>(h_idx) * this->W +
+						w_idx;
+
+					cudaError_t err = cudaMemcpy(&host_data_elements[linear_idx_in_chunk_buffer],
+						this->Data + offset_in_original_data,
+						sizeof(T),
+						cudaMemcpyDeviceToHost);
+					if (err != cudaSuccess) {
+						oss.str("");
+						oss << "Error copying element at NCHW(" << n_idx << "," << c_idx << "," << h_idx << "," << w_idx
+							<< ") : " << cudaGetErrorString(err);
+						return oss.str();
+					}
+				}
+			}
+		}
+	}
+
+	oss << "tensor(";
+	oss << std::fixed << std::setprecision(4);
+
+	auto print_val = [&](T val) {
+		if constexpr (std::is_same_v<T, __half>) {
+			oss << __half2float(val);
+		}
+		else if constexpr (std::is_same_v<T, __nv_fp8_e5m2> || std::is_same_v<T, __nv_fp8_e4m3>) {
+			oss << static_cast<float>(val);
+		}
+		else if constexpr (std::is_same_v<T, __nv_fp4_e2m1> || std::is_same_v<T, __nv_fp8_e8m0>) { // Varsayımsal FP4 ve diğer FP8 için
+			oss << static_cast<float>(val);
+		}
+		else {
+			oss << std::fixed << std::setprecision(4) << static_cast<float>(val);
+		}
+		};
+
+	const int PRINT_THRESHOLD_W = 10;
+	const int EDGE_ITEMS_W = 3;
+
+	int N_ = this->N;
+	int C_ = this->C;
+	int H_ = this->H;
+	int W_ = this->W;
+
+	if (logical_num_elements == 0) {
+		oss << "[]";
+	}
+	else {
+		if (N_ == 1 && C_ == 1 && H_ == 1 && W_ == 1) {
+			print_val(host_data_elements[0]);
+		}
+		else {
+			std::string base_indent = "        ";
+
+			oss << "[";
+			for (int n = 0; n < N_; ++n) {
+				if (n > 0) oss << "," << "\n" << base_indent;
+				if (N_ > 1) oss << "[";
+
+				for (int c = 0; c < C_; ++c) {
+					if (c > 0) oss << "," << "\n" << base_indent << (N_ > 1 ? " " : "");
+					if (C_ > 1) oss << "[";
+
+					for (int h = 0; h < H_; ++h) {
+						if (h > 0) oss << "," << "\n" << base_indent << (N_ > 1 ? "  " : "") << (C_ > 1 ? " " : "");
+						oss << "[";
+
+						if (W_ > PRINT_THRESHOLD_W) {
+							for (int w = 0; w < EDGE_ITEMS_W; ++w) {
+								size_t idx = static_cast<size_t>(n) * C_ * H_ * W_ +
+									static_cast<size_t>(c) * H_ * W_ +
+									static_cast<size_t>(h) * W_ + w;
+								print_val(host_data_elements[idx]);
+								if (w < EDGE_ITEMS_W - 1) oss << ", ";
+							}
+							oss << ", ..., ";
+							for (int w = W_ - EDGE_ITEMS_W; w < W_; ++w) {
+								size_t idx = static_cast<size_t>(n) * C_ * H_ * W_ +
+									static_cast<size_t>(c) * H_ * W_ +
+									static_cast<size_t>(h) * W_ + w;
+								print_val(host_data_elements[idx]);
+								if (w < W_ - 1) oss << ", ";
+							}
+						}
+						else {
+							for (int w = 0; w < W_; ++w) {
+								size_t idx = static_cast<size_t>(n) * C_ * H_ * W_ +
+									static_cast<size_t>(c) * H_ * W_ +
+									static_cast<size_t>(h) * W_ + w;
+								print_val(host_data_elements[idx]);
+								if (w < W_ - 1) oss << ", ";
+							}
+						}
+						oss << "]";
+					}
+					if (C_ > 1) oss << "]";
+				}
+				if (N_ > 1) oss << "]";
+			}
+			oss << "]";
+		}
+	}
+
+	oss << ", dtype=" << getFriendlyTypeName(typeid(T));
+	oss << ", device=cuda:" << this->Device << ")";
 
 	return oss.str();
 }
-
 
 template class Tensor<__half>;
 template class Tensor<float>;
