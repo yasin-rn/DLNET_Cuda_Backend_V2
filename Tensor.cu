@@ -2,6 +2,10 @@
 #include <cudnn.h>
 
 template <typename T>
+Tensor<T>::Tensor()
+{
+}
+template <typename T>
 Tensor<T>::Tensor(int n, int c, int h, int w) :N(n), C(c), H(h), W(w)
 {
 	DimSize = 4;
@@ -16,9 +20,9 @@ Tensor<T>::Tensor(int n, int c, int h, int w) :N(n), C(c), H(h), W(w)
 	IsChunkPart = false;
 	IsOwnData = true;
 
-	TotalSize = sizeof(T) * N * C * H * W;
+	MemSize = sizeof(T) * N * C * H * W;
 
-	cudaMalloc(&Data, TotalSize);
+	cudaMalloc(&Data, MemSize);
 
 	std::vector<T*> hostPtrs(N * C);
 	for (size_t i = 0; i < N * C; ++i)
@@ -29,7 +33,6 @@ Tensor<T>::Tensor(int n, int c, int h, int w) :N(n), C(c), H(h), W(w)
 
 	cudnnCreateTensorDescriptor(&TensorDesc);
 	cudnnSetTensor4dDescriptor(TensorDesc, CUDNN_TENSOR_NCHW, GetCudnnDType<T>(), N, C, H, W);
-
 
 }
 template <typename T>
@@ -48,10 +51,10 @@ Tensor<T>::Tensor(int n, int c, int h, int w, T* hostData) :N(n), C(c), H(h), W(
 	IsChunkPart = false;
 	IsOwnData = true;
 
-	TotalSize = sizeof(T) * N * C * H * W;
+	MemSize = sizeof(T) * N * C * H * W;
 
-	cudaMalloc(&Data, TotalSize);
-	cudaMemcpy(Data, hostData, TotalSize, cudaMemcpyHostToDevice);
+	cudaMalloc(&Data, MemSize);
+	cudaMemcpy(Data, hostData, MemSize, cudaMemcpyHostToDevice);
 
 	std::vector<T*> hostPtrs(N * C);
 	for (size_t i = 0; i < N * C; ++i)
@@ -81,9 +84,9 @@ Tensor<T>::Tensor(int n, int h, int w) :N(n), C(1), H(h), W(w)
 	IsChunkPart = false;
 	IsOwnData = true;
 
-	TotalSize = sizeof(T) * N * C * H * W;
+	MemSize = sizeof(T) * N * C * H * W;
 
-	cudaMalloc(&Data, TotalSize);
+	cudaMalloc(&Data, MemSize);
 
 	std::vector<T*> hostPtrs(N);
 	for (size_t i = 0; i < N; ++i)
@@ -111,10 +114,10 @@ Tensor<T>::Tensor(int n, int h, int w, T* hostData) :N(n), C(1), H(h), W(w)
 	IsChunkPart = false;
 	IsOwnData = true;
 
-	TotalSize = sizeof(T) * N * C * H * W;
+	MemSize = sizeof(T) * N * C * H * W;
 
-	cudaMalloc(&Data, TotalSize);
-	cudaMemcpy(Data, hostData, TotalSize, cudaMemcpyHostToDevice);
+	cudaMalloc(&Data, MemSize);
+	cudaMemcpy(Data, hostData, MemSize, cudaMemcpyHostToDevice);
 
 	std::vector<T*> hostPtrs(N);
 	for (size_t i = 0; i < N; ++i)
@@ -143,9 +146,9 @@ Tensor<T>::Tensor(int h, int w) :N(1), C(1), H(h), W(w)
 	IsChunkPart = false;
 	IsOwnData = true;
 
-	TotalSize = sizeof(T) * N * C * H * W;
+	MemSize = sizeof(T) * N * C * H * W;
 
-	cudaMalloc(&Data, TotalSize);
+	cudaMalloc(&Data, MemSize);
 
 	std::vector<T*> hostPtrs(N);
 	for (size_t i = 0; i < N; ++i)
@@ -172,10 +175,10 @@ Tensor<T>::Tensor(int h, int w, T* hostData) :N(1), C(1), H(h), W(w)
 	IsChunkPart = false;
 	IsOwnData = true;
 
-	TotalSize = sizeof(T) * N * C * H * W;
+	MemSize = sizeof(T) * N * C * H * W;
 
-	cudaMalloc(&Data, TotalSize);
-	cudaMemcpy(Data, hostData, TotalSize, cudaMemcpyHostToDevice);
+	cudaMalloc(&Data, MemSize);
+	cudaMemcpy(Data, hostData, MemSize, cudaMemcpyHostToDevice);
 
 	std::vector<T*> hostPtrs(N);
 	for (size_t i = 0; i < N; ++i)
@@ -203,9 +206,9 @@ Tensor<T>::Tensor(int w) :N(1), C(1), H(1), W(w)
 	IsChunkPart = false;
 	IsOwnData = true;
 
-	TotalSize = sizeof(T) * N * C * H * W;
+	MemSize = sizeof(T) * N * C * H * W;
 
-	cudaMalloc(&Data, TotalSize);
+	cudaMalloc(&Data, MemSize);
 
 	std::vector<T*> hostPtrs(N);
 	for (size_t i = 0; i < N; ++i)
@@ -233,10 +236,10 @@ Tensor<T>::Tensor(int w, T* hostData) :N(1), C(1), H(1), W(w)
 	IsChunkPart = false;
 	IsOwnData = true;
 
-	TotalSize = sizeof(T) * N * C * H * W;
+	MemSize = sizeof(T) * N * C * H * W;
 
-	cudaMalloc(&Data, TotalSize);
-	cudaMemcpy(Data, hostData, TotalSize, cudaMemcpyHostToDevice);
+	cudaMalloc(&Data, MemSize);
+	cudaMemcpy(Data, hostData, MemSize, cudaMemcpyHostToDevice);
 
 	std::vector<T*> hostPtrs(N);
 	for (size_t i = 0; i < N; ++i)
@@ -260,10 +263,10 @@ Tensor<T>::Tensor(int n, int c, int h, int w, T* view_data_ptr,
 	CudnnDataType = GetCudnnDType<T>();
 
 	if (IsOwnData) {
-		TotalSize = sizeof(T) * N * C * H * W;
+		MemSize = sizeof(T) * N * C * H * W;
 	}
 	else {
-		TotalSize = 0;
+		MemSize = 0;
 	}
 
 	this->Strides[0] = original_w_stride;
@@ -316,15 +319,15 @@ template <typename T>
 Tensor<T>::Tensor(const Tensor<T>& other)
 	: N(other.N), C(other.C), H(other.H), W(other.W),
 	IsChunkPart(other.IsChunkPart), IsOwnData(true),
-	TotalSize(other.TotalSize),
+	MemSize(other.MemSize),
 	CudaDataType(other.CudaDataType), CudnnDataType(other.CudnnDataType), DimSize(other.DimSize)
 {
 
 
 	memcpy(Strides, other.Strides, 4 * sizeof(int));
 
-	cudaMalloc(&Data, TotalSize);
-	cudaMemcpy(Data, other.Data, TotalSize, cudaMemcpyDeviceToDevice);
+	cudaMalloc(&Data, MemSize);
+	cudaMemcpy(Data, other.Data, MemSize, cudaMemcpyDeviceToDevice);
 
 	std::vector<T*> hostPtrs(N);
 	for (size_t i = 0; i < N; ++i)
@@ -355,11 +358,11 @@ Tensor<T>& Tensor<T>::operator=(const Tensor<T>& other)
 
 		IsChunkPart = other.IsChunkPart;
 		IsOwnData = true;
-		TotalSize = other.TotalSize;
+		MemSize = other.MemSize;
 		memcpy(Strides, other.Strides, 4 * sizeof(int));
 
-		cudaMalloc(&Data, TotalSize);
-		cudaMemcpy(Data, other.Data, TotalSize, cudaMemcpyDeviceToDevice);
+		cudaMalloc(&Data, MemSize);
+		cudaMemcpy(Data, other.Data, MemSize, cudaMemcpyDeviceToDevice);
 		std::vector<T*> hostPtrs(N);
 		for (size_t i = 0; i < N; ++i)
 			hostPtrs[i] = Data + i * Strides[3];
@@ -377,14 +380,14 @@ template <typename T>
 Tensor<T>::Tensor(Tensor<T>&& other) noexcept
 	: N(other.N), C(other.C), H(other.H), W(other.W),
 	IsChunkPart(other.IsChunkPart), IsOwnData(other.IsOwnData),
-	Data(other.Data), BatchPtrs(other.BatchPtrs), TotalSize(other.TotalSize),
+	Data(other.Data), BatchPtrs(other.BatchPtrs), MemSize(other.MemSize),
 	CudaDataType(other.CudaDataType), CudnnDataType(other.CudnnDataType), TensorDesc(other.TensorDesc), DimSize(other.DimSize)
 {
 	memcpy(Strides, other.Strides, 4 * sizeof(int));
 	other.Data = nullptr;
 	other.BatchPtrs = nullptr;
 	other.IsOwnData = false;
-	other.TotalSize = 0;
+	other.MemSize = 0;
 	other.TensorDesc = nullptr;
 }
 template <typename T>
@@ -405,7 +408,7 @@ Tensor<T>& Tensor<T>::operator=(Tensor<T>&& other) noexcept
 
 		IsChunkPart = other.IsChunkPart;
 		IsOwnData = other.IsOwnData;
-		TotalSize = other.TotalSize;
+		MemSize = other.MemSize;
 		memcpy(Strides, other.Strides, 4 * sizeof(int));
 		Data = other.Data;
 		BatchPtrs = other.BatchPtrs;
@@ -416,7 +419,7 @@ Tensor<T>& Tensor<T>::operator=(Tensor<T>&& other) noexcept
 		other.Data = nullptr;
 		other.BatchPtrs = nullptr;
 		other.IsOwnData = false;
-		other.TotalSize = 0;
+		other.MemSize = 0;
 		other.TensorDesc = nullptr;
 
 	}
@@ -439,7 +442,7 @@ int Tensor<T>::GetLen(int dim)
 }
 
 template <typename T>
-int Tensor<T>::GetStride(int dim)
+int Tensor<T>::GetStride(int dim) const
 {
 	switch (dim)
 	{
@@ -457,6 +460,11 @@ cudnnTensorDescriptor_t Tensor<T>::GetTensorDesc()
 {
 	return TensorDesc;
 }
+template <typename T>
+cudnnSeqDataDescriptor_t Tensor<T>::GetSeqDesc()
+{
+	return SeqDesc;
+}
 
 template <typename T>
 cudaDataType_t Tensor<T>::GetCudaDataType()
@@ -468,8 +476,44 @@ cudnnDataType_t Tensor<T>::GetCudnnDataType()
 {
 	return CudnnDataType;
 }
+template <typename T>
+void Tensor<T>::ToSeqData()
+{
 
+	cudnnCreateSeqDataDescriptor(&SeqDesc);
 
+	int dimA[CUDNN_SEQDATA_DIM_COUNT];
+	dimA[CUDNN_SEQDATA_BATCH_DIM] = N;
+	dimA[CUDNN_SEQDATA_TIME_DIM] = C;
+	dimA[CUDNN_SEQDATA_BEAM_DIM] = H;
+	dimA[CUDNN_SEQDATA_VECT_DIM] = W;
+
+	cudnnSeqDataAxis_t axes[] = {
+		CUDNN_SEQDATA_BATCH_DIM,
+		CUDNN_SEQDATA_TIME_DIM,
+		CUDNN_SEQDATA_BEAM_DIM,
+		CUDNN_SEQDATA_VECT_DIM
+	};
+
+	size_t seqLengthArraySize = N * H;
+	int* seqLengthArray = new int[seqLengthArraySize];
+	for (size_t i = 0; i < seqLengthArraySize; i++)
+	{
+		seqLengthArray[i] = C;
+	}
+
+	cudnnStatus_t status = cudnnSetSeqDataDescriptor(
+		SeqDesc,
+		CudnnDataType,
+		CUDNN_SEQDATA_DIM_COUNT,
+		dimA, axes,
+		seqLengthArraySize, seqLengthArray,
+		nullptr
+	);
+
+	cudaMalloc(&DevSeqPerBatch, seqLengthArraySize * sizeof(int));
+	cudaMemcpy(DevSeqPerBatch, seqLengthArray, seqLengthArraySize * sizeof(int), cudaMemcpyHostToDevice);
+}
 template <typename T>
 void Tensor<T>::Fill(T value)
 {
@@ -480,9 +524,9 @@ void Tensor<T>::Fill(T value)
 	int blockSize = 0;
 	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, FillKernel<T>, 0, 0);
 
-	int blocksPerGrid = (TotalSize + blockSize - 1) / blockSize;
+	int blocksPerGrid = (MemSize + blockSize - 1) / blockSize;
 
-	FillKernel<T> << <blocksPerGrid, blockSize >> > (Data, TotalSize, value);
+	FillKernel<T> << <blocksPerGrid, blockSize >> > (Data, MemSize, value);
 
 	cudaDeviceSynchronize();
 }
@@ -497,7 +541,7 @@ void Tensor<T>::FillRandomUniform()
 template <typename T>
 void Tensor<T>::FillRandomUniform(unsigned long long seed)
 {
-	if (TotalSize == 0) return;
+	if (MemSize == 0) return;
 
 	cudaDeviceProp deviceProp;
 	cudaGetDeviceProperties(&deviceProp, Device);
@@ -507,7 +551,7 @@ void Tensor<T>::FillRandomUniform(unsigned long long seed)
 
 	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, FillRandomUniformKernel<T>, 0, 0);
 
-	size_t numElements = TotalSize / sizeof(T);
+	size_t numElements = MemSize / sizeof(T);
 	if (numElements == 0) return;
 
 	int blocksPerGrid = (numElements + blockSize - 1) / blockSize;
@@ -932,15 +976,15 @@ std::string Tensor<T>::ToString() const {
 
 			oss << "[";
 			for (int n = 0; n < N_; ++n) {
-				if (n > 0) oss << "," << "\n" << base_indent;
+				if (n > 0) oss << "," << "\n\n" << base_indent;
 				if (N_ > 1) oss << "[";
 
 				for (int c = 0; c < C_; ++c) {
-					if (c > 0) oss << "," << "\n" << base_indent << (N_ > 1 ? " " : "");
+					if (c > 0) oss << "," << "\n\n\n" << base_indent << (N_ > 1 ? " " : "");
 					if (C_ > 1) oss << "[";
 
 					for (int h = 0; h < H_; ++h) {
-						if (h > 0) oss << "," << "\n" << base_indent << (N_ > 1 ? "  " : "") << (C_ > 1 ? " " : "");
+						if (h > 0) oss << "," << "\n" << base_indent << (N_ > 1 ? " " : "") << (C_ > 1 ? " " : "");
 						oss << "[";
 
 						if (W_ > PRINT_THRESHOLD_W) {

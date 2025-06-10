@@ -31,17 +31,20 @@ private:
 	T* Data;
 	T** BatchPtrs;
 
-	size_t TotalSize;
+	size_t MemSize;
 
 	int Device = 0;
 
 	cudnnTensorDescriptor_t TensorDesc;
+	cudnnSeqDataDescriptor_t SeqDesc;
 
 	cudaDataType_t CudaDataType;
 	cudnnDataType_t CudnnDataType;
 
 public:
+	int* DevSeqPerBatch;
 
+	Tensor();
 	Tensor(int n, int c, int h, int w);
 	Tensor(int n, int c, int h, int w, T* hostData);
 
@@ -70,18 +73,24 @@ public:
 	int GetC() const { return C; }
 	int GetH() const { return H; }
 	int GetW() const { return W; }
+	int GetTotalSize() const { return N * C * H * W; }
 	int GetDimsize() const { return DimSize; }
+	int GetMemSize() const { return MemSize; }
+	std::vector<int> GetShape() const { return { N, C, H, W }; }
 
 	T* GetData() const { return Data; }
 	void** GetBatchPtrs() const { return reinterpret_cast<void**>(BatchPtrs); }
 
 	int GetLen(int dim);
-	int GetStride(int dim);
+	int GetStride(int dim) const;
 
 	cudnnTensorDescriptor_t GetTensorDesc();
+	cudnnSeqDataDescriptor_t GetSeqDesc();
 
 	cudaDataType_t GetCudaDataType();
 	cudnnDataType_t GetCudnnDataType();
+
+	void ToSeqData();
 
 	void Fill(T value);
 	void FillRandomUniform();
